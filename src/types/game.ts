@@ -37,4 +37,10 @@ export const gameModes: GameMode[] = [
     description: "Play two cards of the same number at once",
     difficulty: "Medium",
   },
+  {
+    id: "flip",
+    name: "UNO Flip",
+    description: "Play with both light and dark sides of special UNO Flip cards",
+    difficulty: "Hard",
+  },
 ];

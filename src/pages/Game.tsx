@@ -38,6 +38,8 @@ const Game = () => {
       { id: "1", color: "red", value: "6" },
       { id: "2", color: "blue", value: "9" },
       { id: "3", color: "green", value: "4" },
+      { id: "4", color: "yellow", value: "+2" },
+      { id: "5", color: "black", value: "+4" },
     ],
     playableCards: [{ id: "1", color: "red", value: "6" }],
   });
@@ -48,11 +50,36 @@ const Game = () => {
 
     // TODO: Implement card playing logic with Socket.IO
     console.log("Playing card:", card);
+    
+    // Dummy UI update
+    setGameState((prev) => ({
+      ...prev,
+      myCards: prev.myCards.filter((c) => c.id !== cardId),
+      currentCard: card,
+      players: prev.players.map((p) => 
+        p.id === "player1" ? { ...p, cards: p.cards - 1 } : p
+      ),
+    }));
   };
 
   const drawCard = () => {
     // TODO: Implement card drawing logic with Socket.IO
     console.log("Drawing card");
+    
+    // Dummy UI update
+    const newCard = {
+      id: `new-${Date.now()}`,
+      color: ["red", "blue", "green", "yellow"][Math.floor(Math.random() * 4)] as "red" | "blue" | "green" | "yellow",
+      value: Math.floor(Math.random() * 9) + 1,
+    };
+    
+    setGameState((prev) => ({
+      ...prev,
+      myCards: [...prev.myCards, newCard],
+      players: prev.players.map((p) => 
+        p.id === "player1" ? { ...p, cards: p.cards + 1 } : p
+      ),
+    }));
   };
 
   return (
