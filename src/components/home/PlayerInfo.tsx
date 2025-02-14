@@ -2,14 +2,16 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Loader2 } from "lucide-react";
 
 interface PlayerInfoProps {
   playerName: string;
   setPlayerName: (name: string) => void;
   onNext: () => void;
+  isLoading: boolean;
 }
 
-const PlayerInfo = ({ playerName, setPlayerName, onNext }: PlayerInfoProps) => {
+const PlayerInfo = ({ playerName, setPlayerName, onNext, isLoading }: PlayerInfoProps) => {
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -25,14 +27,22 @@ const PlayerInfo = ({ playerName, setPlayerName, onNext }: PlayerInfoProps) => {
           value={playerName}
           onChange={(e) => setPlayerName(e.target.value)}
           className="w-full"
+          disabled={isLoading}
         />
       </div>
       <Button
         onClick={onNext}
-        disabled={!playerName.trim()}
+        disabled={!playerName.trim() || isLoading}
         className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
       >
-        Next
+        {isLoading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Please wait
+          </>
+        ) : (
+          "Next"
+        )}
       </Button>
     </motion.div>
   );

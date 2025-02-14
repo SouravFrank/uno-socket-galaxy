@@ -2,6 +2,7 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Loader2 } from "lucide-react";
 
 interface GameOptionsProps {
   gameCode: string;
@@ -9,6 +10,7 @@ interface GameOptionsProps {
   onCreateGame: () => void;
   onJoinGame: () => void;
   onBack: () => void;
+  isLoading: boolean;
 }
 
 const GameOptions = ({
@@ -17,6 +19,7 @@ const GameOptions = ({
   onCreateGame,
   onJoinGame,
   onBack,
+  isLoading,
 }: GameOptionsProps) => {
   return (
     <motion.div
@@ -29,8 +32,16 @@ const GameOptions = ({
         <Button
           onClick={onCreateGame}
           className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white transition-all duration-300"
+          disabled={isLoading}
         >
-          Create New Game
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Creating game...
+            </>
+          ) : (
+            "Create New Game"
+          )}
         </Button>
 
         <div className="relative">
@@ -49,18 +60,28 @@ const GameOptions = ({
             type="text"
             placeholder="Enter game code"
             value={gameCode}
-            onChange={(e) => setGameCode(e.target.value)}
+            onChange={(e) => setGameCode(e.target.value.toUpperCase())}
             className="w-full"
+            maxLength={6}
+            disabled={isLoading}
           />
           <Button
             onClick={onJoinGame}
             className="w-full bg-blue-500 hover:bg-blue-600 text-white transition-all duration-300"
+            disabled={isLoading || !gameCode.trim()}
           >
-            Join Game
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Joining game...
+              </>
+            ) : (
+              "Join Game"
+            )}
           </Button>
         </div>
       </div>
-      <Button onClick={onBack} variant="outline" className="w-full">
+      <Button onClick={onBack} variant="outline" className="w-full" disabled={isLoading}>
         Back
       </Button>
     </motion.div>
