@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import UnoCard from "@/components/UnoCard";
@@ -11,8 +12,19 @@ import { cn } from "@/lib/utils";
 
 interface GameState {
   currentPlayer: string;
-  players: { id: string; name: string; cards: number }[];
-  currentCard: { color: "red" | "blue" | "green" | "yellow" | "black"; value: string | number };
+  players: {
+    id: string;
+    name: string;
+    cards: Array<{
+      id: string;
+      color: "red" | "blue" | "green" | "yellow" | "black";
+      value: string | number;
+    }>;
+  }[];
+  currentCard: {
+    color: "red" | "blue" | "green" | "yellow" | "black";
+    value: string | number;
+  };
   myCards: Array<{
     id: string;
     color: "red" | "blue" | "green" | "yellow" | "black";
