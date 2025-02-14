@@ -54,7 +54,14 @@ const Game = () => {
   });
 
   useEffect(() => {
-    if (!socket || !gameId) return;
+    if (!socket || !gameId) {
+      toast({
+        title: "Connection Error",
+        description: "Unable to connect to the game. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const playerName = location.state?.playerName;
     if (!playerName) {
@@ -131,6 +138,18 @@ const Game = () => {
            card.color === 'black';
   };
 
+  if (!socket) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-2">Connection Error</h2>
+          <p className="text-gray-600 dark:text-gray-300 mb-4">Unable to connect to the game server.</p>
+          <Button onClick={() => navigate('/')}>Return to Home</Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-red-500/10 via-blue-500/10 to-green-500/10">
       <LearningModeToggle />
@@ -147,7 +166,7 @@ const Game = () => {
 
         <div className="grid grid-cols-3 gap-4 mb-8">
           {gameState.players
-            .filter((p) => p.id !== socket.id)
+            .filter((p) => p.id !== socket?.id)
             .map((player) => (
               <div
                 key={player.id}
@@ -175,7 +194,7 @@ const Game = () => {
               onClick={drawCard}
               variant="outline"
               className="bg-white dark:bg-gray-700"
-              disabled={gameState.currentPlayer !== socket.id}
+              disabled={gameState.currentPlayer !== socket?.id}
             >
               Draw Card
             </Button>
@@ -185,7 +204,7 @@ const Game = () => {
                 onClick={flipDeck}
                 variant="outline"
                 className="bg-white dark:bg-gray-700"
-                disabled={gameState.currentPlayer !== socket.id}
+                disabled={gameState.currentPlayer !== socket?.id}
               >
                 Flip Deck
               </Button>
@@ -197,7 +216,7 @@ const Game = () => {
                 key={card.id}
                 color={card.color}
                 value={card.value}
-                isPlayable={gameState.playableCards.some((c) => c.id === card.id) && gameState.currentPlayer === socket.id}
+                isPlayable={gameState.playableCards.some((c) => c.id === card.id) && gameState.currentPlayer === socket?.id}
                 onClick={() => playCard(card.id)}
               />
             ))}
