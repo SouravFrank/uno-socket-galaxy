@@ -5,9 +5,9 @@ import GameHints from "@/components/GameHints";
 import { useLearningStore } from "@/stores/useLearningStore";
 import LearningModeToggle from "@/components/LearningModeToggle";
 import { Button } from "@/components/ui/button";
-import { useSocket } from "@/stores/useSocket";
-import { useToast } from "@/stores/useToast";
-import { cn } from "@/utils/cn";
+import { useSocket } from "@/hooks/useSocket";
+import { useToast } from "@/components/ui/use-toast";
+import { cn } from "@/lib/utils";
 
 interface GameState {
   currentPlayer: string;
