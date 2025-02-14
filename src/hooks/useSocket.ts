@@ -18,9 +18,19 @@ export const useSocket = () => {
     });
 
     socket.current.on('error', ({ message }) => {
+      console.error('Socket error:', message);
       toast({
         title: 'Error',
         description: message,
+        variant: 'destructive',
+      });
+    });
+
+    socket.current.on('disconnect', () => {
+      console.log('Disconnected from server');
+      toast({
+        title: 'Connection Lost',
+        description: 'Lost connection to the game server. Trying to reconnect...',
         variant: 'destructive',
       });
     });
@@ -34,3 +44,5 @@ export const useSocket = () => {
 
   return socket.current;
 };
+
+export default useSocket;

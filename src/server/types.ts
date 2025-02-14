@@ -1,3 +1,4 @@
+
 export interface GameRoom {
   id: string;
   players: {
@@ -30,6 +31,7 @@ export interface ServerToClientEvents {
   player_joined: (data: { gameState: GameRoom }) => void;
   player_left: (data: { gameState: GameRoom }) => void;
   card_drawn: (data: { card: GameRoom['players'][0]['cards'][0] }) => void;
+  game_started: (data: { gameState: GameRoom }) => void;
   error: (data: { message: string }) => void;
 }
 
@@ -39,4 +41,6 @@ export interface ClientToServerEvents {
   play_card: (data: { gameId: string; cardId: string }) => void;
   draw_card: (data: { gameId: string }) => void;
   flip_deck: (data: { gameId: string }) => void;
+  toggle_ready: (data: { gameId: string }) => void;
+  start_game: (data: { gameId: string }) => void;
 }
