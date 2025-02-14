@@ -1,4 +1,3 @@
-
 export interface GameRoom {
   id: string;
   players: {
@@ -9,6 +8,8 @@ export interface GameRoom {
       color: "red" | "blue" | "green" | "yellow" | "black";
       value: string | number;
     }>;
+    isHost: boolean;
+    isReady: boolean;
   }[];
   currentCard: {
     color: "red" | "blue" | "green" | "yellow" | "black";
@@ -18,6 +19,9 @@ export interface GameRoom {
   gameMode: string;
   direction: 1 | -1;
   isFlipped?: boolean;
+  status: "waiting" | "starting" | "playing" | "finished";
+  minPlayers: number;
+  maxPlayers: number;
 }
 
 export interface ServerToClientEvents {

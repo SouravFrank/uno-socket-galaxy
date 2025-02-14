@@ -1,4 +1,3 @@
-
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
@@ -34,12 +33,17 @@ io.on('connection', (socket) => {
         id: socket.id,
         name: playerName,
         cards: generateInitialCards(isFlipMode),
+        isHost: true,
+        isReady: false,
       }],
       currentCard: generateRandomCard(isFlipMode),
       currentPlayer: socket.id,
       gameMode,
       direction: 1,
       isFlipped: isFlipMode ? false : undefined,
+      status: "waiting",
+      minPlayers: 2,
+      maxPlayers: 4,
     };
 
     games.set(gameId, gameRoom);
@@ -56,8 +60,18 @@ io.on('connection', (socket) => {
       return;
     }
 
-    if (game.players.length >= 4) {
+    if (game.status !== "waiting") {
+      socket.emit('error', { message: 'Game has already started' });
+      return;
+    }
+
+    if (game.players.length >= game.maxPlayers) {
       socket.emit('error', { message: 'Game is full' });
+      return;
+    }
+
+    if (game.players.some(p => p.name === playerName)) {
+      socket.emit('error', { message: 'Player name already taken' });
       return;
     }
 
@@ -65,10 +79,47 @@ io.on('connection', (socket) => {
       id: socket.id,
       name: playerName,
       cards: generateInitialCards(game.isFlipped),
+      isHost: false,
+      isReady: false,
     });
 
     socket.join(gameId);
     io.to(gameId).emit('player_joined', { gameState: game });
+  });
+
+  socket.on('toggle_ready', ({ gameId }) => {
+    const game = games.get(gameId);
+    if (!game) return;
+
+    const player = game.players.find(p => p.id === socket.id);
+    if (!player) return;
+
+    player.isReady = !player.isReady;
+    io.to(gameId).emit('game_updated', { gameState: game });
+  });
+
+  socket.on('start_game', ({ gameId }) => {
+    const game = games.get(gameId);
+    if (!game) return;
+
+    const player = game.players.find(p => p.id === socket.id);
+    if (!player || !player.isHost) {
+      socket.emit('error', { message: 'Only the host can start the game' });
+      return;
+    }
+
+    if (game.players.length < game.minPlayers) {
+      socket.emit('error', { message: `Need at least ${game.minPlayers} players to start` });
+      return;
+    }
+
+    if (!game.players.every(p => p.isReady)) {
+      socket.emit('error', { message: 'All players must be ready to start' });
+      return;
+    }
+
+    game.status = "playing";
+    io.to(gameId).emit('game_started', { gameState: game });
   });
 
   socket.on('play_card', ({ gameId, cardId }) => {

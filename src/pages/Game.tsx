@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import UnoCard from "@/components/UnoCard";
@@ -9,34 +8,14 @@ import { Button } from "@/components/ui/button";
 import { useSocket } from "@/hooks/useSocket";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
-
-interface GameState {
-  currentPlayer: string;
-  players: {
-    id: string;
-    name: string;
-    cards: Array<{
-      id: string;
-      color: "red" | "blue" | "green" | "yellow" | "black";
-      value: string | number;
-    }>;
-  }[];
-  currentCard: {
-    color: "red" | "blue" | "green" | "yellow" | "black";
-    value: string | number;
-  };
-  myCards: Array<{
-    id: string;
-    color: "red" | "blue" | "green" | "yellow" | "black";
-    value: string | number;
-  }>;
-  playableCards: Array<{
-    id: string;
-    color: "red" | "blue" | "green" | "yellow" | "black";
-    value: string | number;
-  }>;
-  isFlipped?: boolean;
-}
+import { Share2, Crown, CheckCircle2, Users } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 const Game = () => {
   const { gameId } = useParams();
@@ -45,12 +24,14 @@ const Game = () => {
   const socket = useSocket();
   const { toast } = useToast();
   const { isLearningMode } = useLearningStore();
-  const [gameState, setGameState] = useState<GameState>({
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [gameState, setGameState] = useState({
     currentPlayer: "",
     players: [],
     currentCard: { color: "red", value: "0" },
     myCards: [],
     playableCards: [],
+    status: "waiting",
   });
 
   useEffect(() => {
@@ -71,7 +52,7 @@ const Game = () => {
 
     socket.emit('join_game', { gameId, playerName });
 
-    socket.on('game_updated', ({ gameState: newGameState }) => {
+    const handleGameUpdate = ({ gameState: newGameState }) => {
       setGameState(prev => ({
         ...prev,
         currentPlayer: newGameState.currentPlayer,
@@ -81,8 +62,13 @@ const Game = () => {
         playableCards: (newGameState.players.find(p => p.id === socket.id)?.cards || [])
           .filter(card => isCardPlayable(card, newGameState.currentCard)),
         isFlipped: newGameState.isFlipped,
+        status: newGameState.status,
       }));
-    });
+    };
+
+    socket.on('game_updated', handleGameUpdate);
+    socket.on('player_joined', handleGameUpdate);
+    socket.on('game_started', handleGameUpdate);
 
     socket.on('player_joined', ({ gameState: newGameState }) => {
       toast({
@@ -91,31 +77,132 @@ const Game = () => {
       });
     });
 
-    socket.on('player_left', ({ gameState: newGameState }) => {
-      toast({
-        title: 'Player Left',
-        description: 'A player has left the game',
-        variant: 'destructive',
-      });
-    });
-
-    socket.on('card_drawn', ({ card }) => {
-      setGameState(prev => ({
-        ...prev,
-        myCards: [...prev.myCards, card],
-        playableCards: isCardPlayable(card, prev.currentCard) 
-          ? [...prev.playableCards, card]
-          : prev.playableCards,
-      }));
-    });
-
     return () => {
       socket.off('game_updated');
       socket.off('player_joined');
-      socket.off('player_left');
-      socket.off('card_drawn');
+      socket.off('game_started');
     };
   }, [socket, gameId]);
+
+  const copyInviteLink = () => {
+    const inviteLink = `${window.location.origin}/game/${gameId}`;
+    navigator.clipboard.writeText(inviteLink);
+    toast({
+      title: "Invite Link Copied",
+      description: "Share this link with your friends to join the game!",
+    });
+  };
+
+  const toggleReady = () => {
+    if (!socket || !gameId) return;
+    socket.emit('toggle_ready', { gameId });
+  };
+
+  const startGame = () => {
+    if (!socket || !gameId) return;
+    socket.emit('start_game', { gameId });
+  };
+
+  const getCurrentPlayer = () => {
+    return gameState.players.find(p => p.id === socket.id);
+  };
+
+  const isHost = getCurrentPlayer()?.isHost;
+  const isReady = getCurrentPlayer()?.isReady;
+  const allPlayersReady = gameState.players.every(p => p.isReady);
+  const canStartGame = isHost && allPlayersReady && gameState.players.length >= 2;
+
+  if (gameState.status === "waiting") {
+    return (
+      <div className="min-h-screen w-full bg-gradient-to-br from-red-500/10 via-blue-500/10 to-green-500/10">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg p-6 shadow-xl">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold">Game Lobby</h2>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowInviteDialog(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Share2 className="w-4 h-4" />
+                  Invite Players
+                </Button>
+              </div>
+
+              <div className="space-y-4 mb-6">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Players ({gameState.players.length}/4)
+                </h3>
+                <div className="divide-y dark:divide-gray-700">
+                  {gameState.players.map((player) => (
+                    <div
+                      key={player.id}
+                      className="py-3 flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-2">
+                        {player.isHost && (
+                          <Crown className="w-4 h-4 text-yellow-500" />
+                        )}
+                        <span>{player.name}</span>
+                      </div>
+                      {player.isReady ? (
+                        <CheckCircle2 className="w-5 h-5 text-green-500" />
+                      ) : (
+                        <span className="text-sm text-gray-500">Not Ready</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  onClick={toggleReady}
+                  variant={isReady ? "outline" : "default"}
+                  className={cn(
+                    "flex-1",
+                    isReady && "bg-green-500 hover:bg-green-600"
+                  )}
+                >
+                  {isReady ? "Ready!" : "Click when ready"}
+                </Button>
+                {isHost && (
+                  <Button
+                    onClick={startGame}
+                    disabled={!canStartGame}
+                    className="flex-1 bg-blue-500 hover:bg-blue-600"
+                  >
+                    Start Game
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Invite Players</DialogTitle>
+              <DialogDescription>
+                Share this game code with your friends:
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg text-center text-2xl font-mono">
+                {gameId}
+              </div>
+              <Button onClick={copyInviteLink} className="w-full">
+                Copy Invite Link
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
 
   const playCard = (cardId: string) => {
     if (!socket || !gameId) return;
