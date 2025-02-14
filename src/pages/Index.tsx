@@ -1,28 +1,57 @@
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import PlayerInfo from "@/components/home/PlayerInfo";
 import GameModeSelector from "@/components/home/GameModeSelector";
 import GameOptions from "@/components/home/GameOptions";
 import { gameModes } from "@/types/game";
+import { useSocket } from "@/hooks/useSocket";
+import { useToast } from "@/components/ui/use-toast";
 
 const Index = () => {
   const [gameCode, setGameCode] = useState("");
   const [playerName, setPlayerName] = useState("");
   const [selectedMode, setSelectedMode] = useState<string>("classic");
   const [step, setStep] = useState<"info" | "mode" | "final">("info");
+  const navigate = useNavigate();
+  const socket = useSocket();
+  const { toast } = useToast();
 
   const createGame = () => {
-    if (!playerName.trim() || !selectedMode) return;
-    // TODO: Implement game creation with selected mode
-    console.log("Creating game with mode:", selectedMode);
+    if (!playerName.trim() || !selectedMode || !socket) return;
+    
+    socket.emit('create_game', { playerName, gameMode: selectedMode });
+    
+    socket.on('game_created', ({ gameId }) => {
+      navigate(`/game/${gameId}`, { state: { playerName } });
+    });
   };
 
   const joinGame = () => {
-    if (!gameCode.trim() || !playerName.trim()) return;
-    // TODO: Implement game joining
-    console.log("Joining game:", gameCode);
+    if (!gameCode.trim() || !playerName.trim() || !socket) {
+      toast({
+        title: "Error",
+        description: "Please fill in all fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    socket.emit('join_game', { gameId: gameCode.toUpperCase(), playerName });
+
+    socket.on('error', ({ message }) => {
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
+      });
+    });
+
+    socket.on('player_joined', () => {
+      navigate(`/game/${gameCode.toUpperCase()}`, { state: { playerName } });
+    });
   };
 
   const nextStep = () => {
