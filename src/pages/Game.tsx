@@ -9,6 +9,7 @@ import { useSocket } from "@/hooks/useSocket";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 import { Share2, Crown, CheckCircle2, Users } from "lucide-react";
+import { GameRoom } from "@/server/types";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +17,12 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+
+interface GameState extends Omit<GameRoom, 'players'> {
+  players: GameRoom['players'];
+  myCards: GameRoom['players'][0]['cards'];
+  playableCards: GameRoom['players'][0]['cards'];
+}
 
 const Game = () => {
   const { gameId } = useParams();
@@ -25,13 +32,18 @@ const Game = () => {
   const { toast } = useToast();
   const { isLearningMode } = useLearningStore();
   const [showInviteDialog, setShowInviteDialog] = useState(false);
-  const [gameState, setGameState] = useState({
+  const [gameState, setGameState] = useState<GameState>({
+    id: "",
     currentPlayer: "",
     players: [],
     currentCard: { color: "red", value: "0" },
     myCards: [],
     playableCards: [],
     status: "waiting",
+    gameMode: "classic",
+    direction: 1,
+    minPlayers: 2,
+    maxPlayers: 4,
   });
 
   useEffect(() => {
@@ -50,21 +62,25 @@ const Game = () => {
       return;
     }
 
-    socket.emit('join_game', { gameId, playerName });
+    // Join or create game based on whether we're the first player
+    if (gameState.players.length === 0) {
+      socket.emit('create_game', { playerName, gameMode: "classic" });
+    } else {
+      socket.emit('join_game', { gameId, playerName });
+    }
 
     const handleGameUpdate = ({ gameState: newGameState }) => {
       setGameState(prev => ({
-        ...prev,
-        currentPlayer: newGameState.currentPlayer,
-        players: newGameState.players,
-        currentCard: newGameState.currentCard,
+        ...newGameState,
         myCards: newGameState.players.find(p => p.id === socket.id)?.cards || [],
         playableCards: (newGameState.players.find(p => p.id === socket.id)?.cards || [])
           .filter(card => isCardPlayable(card, newGameState.currentCard)),
-        isFlipped: newGameState.isFlipped,
-        status: newGameState.status,
       }));
     };
+
+    socket.on('game_created', ({ gameState: newGameState }) => {
+      handleGameUpdate({ gameState: newGameState });
+    });
 
     socket.on('game_updated', handleGameUpdate);
     socket.on('player_joined', handleGameUpdate);
@@ -78,6 +94,7 @@ const Game = () => {
     });
 
     return () => {
+      socket.off('game_created');
       socket.off('game_updated');
       socket.off('player_joined');
       socket.off('game_started');
@@ -104,13 +121,19 @@ const Game = () => {
   };
 
   const getCurrentPlayer = () => {
-    return gameState.players.find(p => p.id === socket.id);
+    return gameState.players.find(p => p.id === socket?.id);
   };
 
   const isHost = getCurrentPlayer()?.isHost;
   const isReady = getCurrentPlayer()?.isReady;
   const allPlayersReady = gameState.players.every(p => p.isReady);
   const canStartGame = isHost && allPlayersReady && gameState.players.length >= 2;
+
+  const isCardPlayable = (card: GameRoom['players'][0]['cards'][0], currentCard: GameRoom['currentCard']) => {
+    return card.color === currentCard.color || 
+           card.value === currentCard.value || 
+           card.color === 'black';
+  };
 
   if (gameState.status === "waiting") {
     return (
