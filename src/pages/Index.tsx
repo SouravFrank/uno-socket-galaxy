@@ -5,10 +5,11 @@ import { Card } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import PlayerInfo from "@/components/home/PlayerInfo";
 import GameModeSelector from "@/components/home/GameModeSelector";
-import GameOptions from "@/components/home/GameOptions";
 import { gameModes } from "@/types/game";
 import { useSocket } from "@/hooks/useSocket";
 import { useToast } from "@/components/ui/use-toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 const MIN_PLAYERS = 2;
 const MAX_PLAYERS = 4;
@@ -19,7 +20,7 @@ const Index = () => {
   const [gameCode, setGameCode] = useState("");
   const [playerName, setPlayerName] = useState("");
   const [selectedMode, setSelectedMode] = useState<string>("classic");
-  const [step, setStep] = useState<"info" | "mode" | "final">("info");
+  const [step, setStep] = useState<"info" | "choice" | "mode" | "join">("info");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const socket = useSocket();
@@ -69,15 +70,6 @@ const Index = () => {
         navigate(`/game/${gameId}`, { state: { playerName } });
       }
     });
-
-    socket.on('error', ({ message }) => {
-      setIsLoading(false);
-      toast({
-        title: "Error",
-        description: message,
-        variant: "destructive",
-      });
-    });
   };
 
   const joinGame = async () => {
@@ -104,15 +96,6 @@ const Index = () => {
     setIsLoading(true);
     socket.emit('join_game', { gameId: gameCode.toUpperCase(), playerName });
 
-    socket.on('error', ({ message }) => {
-      setIsLoading(false);
-      toast({
-        title: "Error",
-        description: message,
-        variant: "destructive",
-      });
-    });
-
     socket.on('player_joined', ({ gameState }) => {
       setIsLoading(false);
       if (gameState.players.length > MAX_PLAYERS) {
@@ -130,17 +113,23 @@ const Index = () => {
   const nextStep = () => {
     if (step === "info") {
       if (!validatePlayerName(playerName)) return;
-      setStep("mode");
-    } else if (step === "mode" && selectedMode) {
-      setStep("final");
+      setStep("choice");
+    } else if (step === "choice") {
+      // Do nothing, user will choose between create or join
+    } else if (step === "mode") {
+      if (selectedMode) {
+        createGame();
+      }
     }
   };
 
   const prevStep = () => {
-    if (step === "mode") {
+    if (step === "choice") {
       setStep("info");
-    } else if (step === "final") {
-      setStep("mode");
+    } else if (step === "mode") {
+      setStep("choice");
+    } else if (step === "join") {
+      setStep("choice");
     }
   };
 
@@ -172,6 +161,55 @@ const Index = () => {
               />
             )}
 
+            {step === "choice" && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-6"
+              >
+                <h3 className="text-lg font-semibold mb-4">Choose an Option</h3>
+                <div className="space-y-4">
+                  <Button
+                    onClick={() => setStep("mode")}
+                    className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+                  >
+                    Create New Game
+                  </Button>
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-white dark:bg-gray-800 px-2 text-gray-500">
+                        or
+                      </span>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Input
+                      type="text"
+                      placeholder="Enter game code"
+                      value={gameCode}
+                      onChange={(e) => setGameCode(e.target.value.toUpperCase())}
+                      className="w-full"
+                      maxLength={6}
+                    />
+                    <Button
+                      onClick={joinGame}
+                      className="w-full"
+                      disabled={!gameCode.trim()}
+                    >
+                      Join Game
+                    </Button>
+                  </div>
+                </div>
+                <Button onClick={prevStep} variant="outline" className="w-full">
+                  Back
+                </Button>
+              </motion.div>
+            )}
+
             {step === "mode" && (
               <GameModeSelector
                 selectedMode={selectedMode}
@@ -179,17 +217,6 @@ const Index = () => {
                 onNext={nextStep}
                 onBack={prevStep}
                 gameModes={gameModes}
-                isLoading={isLoading}
-              />
-            )}
-
-            {step === "final" && (
-              <GameOptions
-                gameCode={gameCode}
-                setGameCode={setGameCode}
-                onCreateGame={createGame}
-                onJoinGame={joinGame}
-                onBack={prevStep}
                 isLoading={isLoading}
               />
             )}
