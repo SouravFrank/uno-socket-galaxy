@@ -242,11 +242,11 @@ const Game = () => {
     socket.emit('flip_deck', { gameId });
   };
 
-  const isCardPlayable = (card: any, currentCard: any) => {
-    return card.color === currentCard.color || 
-           card.value === currentCard.value || 
-           card.color === 'black';
-  };
+  // const isCardPlayable = (card: any, currentCard: any) => {
+  //   return card.color === currentCard.color || 
+  //          card.value === currentCard.value || 
+  //          card.color === 'black';
+  // };
 
   if (!socket) {
     return (
