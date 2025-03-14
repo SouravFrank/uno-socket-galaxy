@@ -13,7 +13,7 @@ interface GameOptionsProps {
   isLoading: boolean;
 }
 
-const GameOptions = ({
+export const GameOptions = ({
   gameCode,
   setGameCode,
   onCreateGame,
@@ -28,10 +28,11 @@ const GameOptions = ({
       exit={{ opacity: 0, x: -20 }}
       className="space-y-6"
     >
+      <h3 className="text-lg font-semibold mb-4">Choose an Option</h3>
       <div className="space-y-4">
         <Button
           onClick={onCreateGame}
-          className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white transition-all duration-300"
+          className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
           disabled={isLoading}
         >
           {isLoading ? (
@@ -43,18 +44,16 @@ const GameOptions = ({
             "Create New Game"
           )}
         </Button>
-
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300"></div>
+            <span className="w-full border-t" />
           </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white dark:bg-gray-800 text-gray-500">
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-white dark:bg-gray-800 px-2 text-gray-500">
               or
             </span>
           </div>
         </div>
-
         <div className="space-y-2">
           <Input
             type="text"
@@ -67,8 +66,8 @@ const GameOptions = ({
           />
           <Button
             onClick={onJoinGame}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white transition-all duration-300"
-            disabled={isLoading || !gameCode.trim()}
+            className="w-full bg-blue-500 hover:bg-blue-600"
+            disabled={!gameCode.trim() || isLoading}
           >
             {isLoading ? (
               <>
@@ -87,5 +86,3 @@ const GameOptions = ({
     </motion.div>
   );
 };
-
-export default GameOptions;

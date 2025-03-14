@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import UnoCard from "@/components/UnoCard";
@@ -5,11 +6,9 @@ import GameHints from "@/components/GameHints";
 import { useLearningStore } from "@/stores/useLearningStore";
 import LearningModeToggle from "@/components/LearningModeToggle";
 import { Button } from "@/components/ui/button";
-import { useSocket } from "@/hooks/useSocket";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 import { Share2, Crown, CheckCircle2, Users } from "lucide-react";
-import { GameRoom } from "@/server/types";
 import {
   Dialog,
   DialogContent,
@@ -17,42 +16,38 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-
-interface GameState extends Omit<GameRoom, 'players'> {
-  players: GameRoom['players'];
-  myCards: GameRoom['players'][0]['cards'];
-  playableCards: GameRoom['players'][0]['cards'];
-}
+import {
+  GameState,
+  Player,
+  UnoCard as UnoCardType,
+  createDummyGameState,
+  addDummyPlayer,
+  togglePlayerReady,
+  startDummyGame,
+  playCard as playCardAction,
+  drawCard as drawCardAction,
+  flipDeck as flipDeckAction,
+  isCardPlayable
+} from "@/types/game";
 
 const Game = () => {
   const { gameId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const socket = useSocket();
   const { toast } = useToast();
   const { isLearningMode } = useLearningStore();
   const [showInviteDialog, setShowInviteDialog] = useState(false);
-  const [gameState, setGameState] = useState<GameState>({
-    id: "",
-    currentPlayer: "",
-    players: [],
-    currentCard: { color: "red", value: "0" },
-    myCards: [],
-    playableCards: [],
-    status: "waiting",
-    gameMode: "classic",
-    direction: 1,
-    minPlayers: 2,
-    maxPlayers: 4,
-  });
+  const [gameState, setGameState] = useState<GameState | null>(null);
+  const [playerId, setPlayerId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!socket || !gameId) {
+    if (!gameId) {
       toast({
-        title: "Connection Error",
-        description: "Unable to connect to the game. Please try again.",
+        title: "Error",
+        description: "Game ID is required",
         variant: "destructive",
       });
+      navigate('/');
       return;
     }
 
@@ -62,44 +57,29 @@ const Game = () => {
       return;
     }
 
-    // Join or create game based on whether we're the first player
-    if (gameState.players.length === 0) {
-      socket.emit('create_game', { playerName, gameMode: "classic" });
-    } else {
-      socket.emit('join_game', { gameId, playerName });
-    }
+    // Create a dummy game state for testing without socket.io
+    const dummyGameState = createDummyGameState(gameId, playerName, "classic");
+    setGameState(dummyGameState);
+    setPlayerId(dummyGameState.players[0].id);
 
-    const handleGameUpdate = ({ gameState: newGameState }) => {
-      setGameState(prev => ({
-        ...newGameState,
-        myCards: newGameState.players.find(p => p.id === socket.id)?.cards || [],
-        playableCards: (newGameState.players.find(p => p.id === socket.id)?.cards || [])
-          .filter(card => isCardPlayable(card, newGameState.currentCard)),
-      }));
-    };
+    // Add some dummy players after a delay
+    const timeout1 = setTimeout(() => {
+      if (dummyGameState) {
+        setGameState(prevState => prevState ? addDummyPlayer(prevState, "Player 2") : null);
+      }
+    }, 1500);
 
-    socket.on('game_created', ({ gameState: newGameState }) => {
-      handleGameUpdate({ gameState: newGameState });
-    });
-
-    socket.on('game_updated', handleGameUpdate);
-    socket.on('player_joined', handleGameUpdate);
-    socket.on('game_started', handleGameUpdate);
-
-    socket.on('player_joined', ({ gameState: newGameState }) => {
-      toast({
-        title: 'Player Joined',
-        description: `${newGameState.players[newGameState.players.length - 1].name} joined the game`,
-      });
-    });
+    const timeout2 = setTimeout(() => {
+      if (dummyGameState) {
+        setGameState(prevState => prevState ? addDummyPlayer(prevState, "Player 3") : null);
+      }
+    }, 3000);
 
     return () => {
-      socket.off('game_created');
-      socket.off('game_updated');
-      socket.off('player_joined');
-      socket.off('game_started');
+      clearTimeout(timeout1);
+      clearTimeout(timeout2);
     };
-  }, [socket, gameId]);
+  }, [gameId, navigate, toast]);
 
   const copyInviteLink = () => {
     const inviteLink = `${window.location.origin}/game/${gameId}`;
@@ -111,29 +91,114 @@ const Game = () => {
   };
 
   const toggleReady = () => {
-    if (!socket || !gameId) return;
-    socket.emit('toggle_ready', { gameId });
+    if (!gameState || !playerId) return;
+    setGameState(togglePlayerReady(gameState, playerId));
+    
+    // Make other players ready after some time
+    setTimeout(() => {
+      setGameState(prevState => {
+        if (!prevState) return null;
+        let updatedState = {...prevState};
+        // Make all AI players ready
+        prevState.players.forEach(player => {
+          if (player.id !== playerId) {
+            updatedState = togglePlayerReady(updatedState, player.id);
+          }
+        });
+        return updatedState;
+      });
+    }, 2000);
   };
 
   const startGame = () => {
-    if (!socket || !gameId) return;
-    socket.emit('start_game', { gameId });
+    if (!gameState) return;
+    setGameState(startDummyGame(gameState));
   };
 
-  const getCurrentPlayer = () => {
-    return gameState.players.find(p => p.id === socket?.id);
+  const handlePlayCard = (cardId: string) => {
+    if (!gameState || !playerId) return;
+    const updatedState = playCardAction(gameState, playerId, cardId);
+    setGameState(updatedState);
+    
+    // Let AI players make moves after a delay
+    if (updatedState.status === "playing" && updatedState.currentPlayer !== playerId) {
+      setTimeout(simulateAIMove, 1500);
+    }
   };
 
-  const isHost = getCurrentPlayer()?.isHost;
-  const isReady = getCurrentPlayer()?.isReady;
+  const handleDrawCard = () => {
+    if (!gameState || !playerId) return;
+    const updatedState = drawCardAction(gameState, playerId);
+    setGameState(updatedState);
+    
+    // Let AI players make moves after a delay
+    if (updatedState.currentPlayer !== playerId) {
+      setTimeout(simulateAIMove, 1500);
+    }
+  };
+
+  const handleFlipDeck = () => {
+    if (!gameState || !playerId) return;
+    setGameState(flipDeckAction(gameState));
+  };
+
+  const simulateAIMove = () => {
+    setGameState(prevState => {
+      if (!prevState) return null;
+      
+      const currentPlayer = prevState.players.find(p => p.id === prevState.currentPlayer);
+      if (!currentPlayer || currentPlayer.id === playerId) return prevState;
+      
+      // Find playable cards
+      const playableCards = currentPlayer.cards.filter(card => 
+        isCardPlayable(card, prevState.currentCard)
+      );
+      
+      // Play a random playable card or draw
+      if (playableCards.length > 0) {
+        const randomCard = playableCards[Math.floor(Math.random() * playableCards.length)];
+        const newState = playCardAction(prevState, currentPlayer.id, randomCard.id);
+        
+        // Schedule next AI move if it's still AI's turn
+        if (newState.currentPlayer !== playerId && newState.status === "playing") {
+          setTimeout(simulateAIMove, 1500);
+        }
+        
+        return newState;
+      } else {
+        // Draw a card
+        const newState = drawCardAction(prevState, currentPlayer.id);
+        
+        // Schedule next AI move if it's still AI's turn
+        if (newState.currentPlayer !== playerId && newState.status === "playing") {
+          setTimeout(simulateAIMove, 1500);
+        }
+        
+        return newState;
+      }
+    });
+  };
+
+  if (!gameState) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-2">Loading Game...</h2>
+        </div>
+      </div>
+    );
+  }
+
+  const myPlayer = playerId ? gameState.players.find(p => p.id === playerId) : null;
+  const isHost = myPlayer?.isHost;
+  const isReady = myPlayer?.isReady;
   const allPlayersReady = gameState.players.every(p => p.isReady);
   const canStartGame = isHost && allPlayersReady && gameState.players.length >= 2;
-
-  const isCardPlayable = (card: GameRoom['players'][0]['cards'][0], currentCard: GameRoom['currentCard']) => {
-    return card.color === currentCard.color || 
-           card.value === currentCard.value || 
-           card.color === 'black';
-  };
+  
+  const myCards = myPlayer?.cards || [];
+  const playableCards = myPlayer?.cards.filter(card => 
+    isCardPlayable(card, gameState.currentCard) && gameState.currentPlayer === playerId
+  ) || [];
 
   if (gameState.status === "waiting") {
     return (
@@ -227,34 +292,18 @@ const Game = () => {
     );
   }
 
-  const playCard = (cardId: string) => {
-    if (!socket || !gameId) return;
-    socket.emit('play_card', { gameId, cardId });
-  };
-
-  const drawCard = () => {
-    if (!socket || !gameId) return;
-    socket.emit('draw_card', { gameId });
-  };
-
-  const flipDeck = () => {
-    if (!socket || !gameId) return;
-    socket.emit('flip_deck', { gameId });
-  };
-
-  // const isCardPlayable = (card: any, currentCard: any) => {
-  //   return card.color === currentCard.color || 
-  //          card.value === currentCard.value || 
-  //          card.color === 'black';
-  // };
-
-  if (!socket) {
+  if (gameState.status === "finished") {
+    const winner = gameState.players.find(p => p.id === gameState.winner);
     return (
-      <div className="min-h-screen w-full flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">Connection Error</h2>
-          <p className="text-gray-600 dark:text-gray-300 mb-4">Unable to connect to the game server.</p>
-          <Button onClick={() => navigate('/')}>Return to Home</Button>
+      <div className="min-h-screen w-full bg-gradient-to-br from-red-500/10 via-blue-500/10 to-green-500/10 flex items-center justify-center">
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg p-8 shadow-xl text-center">
+          <h2 className="text-3xl font-bold mb-4">Game Over!</h2>
+          <p className="text-xl mb-6">
+            {winner?.name || "Someone"} has won the game!
+          </p>
+          <Button onClick={() => navigate('/')} className="bg-blue-500 hover:bg-blue-600">
+            Back to Home
+          </Button>
         </div>
       </div>
     );
@@ -263,7 +312,7 @@ const Game = () => {
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-red-500/10 via-blue-500/10 to-green-500/10">
       <LearningModeToggle />
-      <GameHints playableCards={gameState.playableCards} isVisible={isLearningMode} />
+      <GameHints playableCards={playableCards} isVisible={isLearningMode} />
 
       <div className="container mx-auto px-4 py-8">
         {gameState.isFlipped !== undefined && (
@@ -276,7 +325,7 @@ const Game = () => {
 
         <div className="grid grid-cols-3 gap-4 mb-8">
           {gameState.players
-            .filter((p) => p.id !== socket?.id)
+            .filter((p) => p.id !== playerId)
             .map((player) => (
               <div
                 key={player.id}
@@ -301,33 +350,33 @@ const Game = () => {
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
           <div className="flex justify-center gap-2 mb-4">
             <Button
-              onClick={drawCard}
+              onClick={handleDrawCard}
               variant="outline"
               className="bg-white dark:bg-gray-700"
-              disabled={gameState.currentPlayer !== socket?.id}
+              disabled={gameState.currentPlayer !== playerId}
             >
               Draw Card
             </Button>
             
-            {gameState.isFlipped !== undefined && (
+            {gameState.gameMode === "flip" && (
               <Button
-                onClick={flipDeck}
+                onClick={handleFlipDeck}
                 variant="outline"
                 className="bg-white dark:bg-gray-700"
-                disabled={gameState.currentPlayer !== socket?.id}
+                disabled={gameState.currentPlayer !== playerId}
               >
                 Flip Deck
               </Button>
             )}
           </div>
           <div className="flex justify-center gap-2 overflow-x-auto pb-4">
-            {gameState.myCards.map((card) => (
+            {myCards.map((card) => (
               <UnoCard
                 key={card.id}
                 color={card.color}
                 value={card.value}
-                isPlayable={gameState.playableCards.some((c) => c.id === card.id) && gameState.currentPlayer === socket?.id}
-                onClick={() => playCard(card.id)}
+                isPlayable={playableCards.some((c) => c.id === card.id) && gameState.currentPlayer === playerId}
+                onClick={() => handlePlayCard(card.id)}
               />
             ))}
           </div>

@@ -1,14 +1,9 @@
 
 import { motion, AnimatePresence } from "framer-motion";
-
-export interface PlayableCard {
-  id: string;
-  color: "red" | "blue" | "green" | "yellow" | "black";
-  value: string | number;
-}
+import { UnoCard } from "@/types/game";
 
 interface GameHintsProps {
-  playableCards: PlayableCard[];
+  playableCards: UnoCard[];
   isVisible: boolean;
 }
 
@@ -20,7 +15,7 @@ const GameHints = ({ playableCards, isVisible }: GameHintsProps) => {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.9 }}
-          className="fixed left-4 top-20 max-w-xs bg-white/90 dark:bg-gray-800/90 p-4 rounded-lg shadow-lg backdrop-blur-sm"
+          className="fixed left-4 top-20 max-w-xs bg-white/90 dark:bg-gray-800/90 p-4 rounded-lg shadow-lg backdrop-blur-sm z-50"
         >
           <h3 className="text-sm font-semibold mb-2">Available Moves:</h3>
           <div className="space-y-1">

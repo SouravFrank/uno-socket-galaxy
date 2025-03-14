@@ -5,14 +5,10 @@ import { Card } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import PlayerInfo from "@/components/home/PlayerInfo";
 import GameModeSelector from "@/components/home/GameModeSelector";
+import { GameOptions } from "@/components/home/GameOptions";
 import { gameModes } from "@/types/game";
-import { useSocket } from "@/hooks/useSocket";
 import { useToast } from "@/components/ui/use-toast";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
-const MIN_PLAYERS = 2;
-const MAX_PLAYERS = 4;
 const MIN_NAME_LENGTH = 2;
 const MAX_NAME_LENGTH = 20;
 
@@ -23,7 +19,6 @@ const Index = () => {
   const [step, setStep] = useState<"info" | "choice" | "mode" | "join">("info");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const socket = useSocket();
   const { toast } = useToast();
 
   const validatePlayerName = (name: string) => {
@@ -55,25 +50,26 @@ const Index = () => {
   };
 
   const createGame = async () => {
-    if (!socket || !validatePlayerName(playerName)) return;
+    if (!validatePlayerName(playerName)) return;
     
     setIsLoading(true);
-    socket.emit('create_game', { playerName, gameMode: selectedMode });
     
-    socket.on('game_created', ({ gameId, gameState }) => {
+    // Generate a random game ID
+    const gameId = Math.random().toString(36).substring(2, 8).toUpperCase();
+    
+    // Simulate network delay
+    setTimeout(() => {
       setIsLoading(false);
-      if (gameState.players.length > 0) {
-        toast({
-          title: "Game Created",
-          description: `Share the code ${gameId} with your friends to join!`,
-        });
-        navigate(`/game/${gameId}`, { state: { playerName } });
-      }
-    });
+      toast({
+        title: "Game Created",
+        description: `Share the code ${gameId} with your friends to join!`,
+      });
+      navigate(`/game/${gameId}`, { state: { playerName } });
+    }, 1500);
   };
 
   const joinGame = async () => {
-    if (!socket || !validatePlayerName(playerName)) return;
+    if (!validatePlayerName(playerName)) return;
     
     if (!gameCode.trim()) {
       toast({
@@ -94,20 +90,12 @@ const Index = () => {
     }
 
     setIsLoading(true);
-    socket.emit('join_game', { gameId: gameCode.toUpperCase(), playerName });
-
-    socket.on('player_joined', ({ gameState }) => {
+    
+    // Simulate network delay
+    setTimeout(() => {
       setIsLoading(false);
-      if (gameState.players.length > MAX_PLAYERS) {
-        toast({
-          title: "Game Full",
-          description: `Maximum ${MAX_PLAYERS} players allowed`,
-          variant: "destructive",
-        });
-        return;
-      }
       navigate(`/game/${gameCode.toUpperCase()}`, { state: { playerName } });
-    });
+    }, 1500);
   };
 
   const nextStep = () => {
@@ -131,6 +119,10 @@ const Index = () => {
     } else if (step === "join") {
       setStep("choice");
     }
+  };
+
+  const handleCreateGame = () => {
+    setStep("mode");
   };
 
   return (
@@ -162,52 +154,14 @@ const Index = () => {
             )}
 
             {step === "choice" && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-6"
-              >
-                <h3 className="text-lg font-semibold mb-4">Choose an Option</h3>
-                <div className="space-y-4">
-                  <Button
-                    onClick={() => setStep("mode")}
-                    className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
-                  >
-                    Create New Game
-                  </Button>
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-white dark:bg-gray-800 px-2 text-gray-500">
-                        or
-                      </span>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Input
-                      type="text"
-                      placeholder="Enter game code"
-                      value={gameCode}
-                      onChange={(e) => setGameCode(e.target.value.toUpperCase())}
-                      className="w-full"
-                      maxLength={6}
-                    />
-                    <Button
-                      onClick={joinGame}
-                      className="w-full"
-                      disabled={!gameCode.trim()}
-                    >
-                      Join Game
-                    </Button>
-                  </div>
-                </div>
-                <Button onClick={prevStep} variant="outline" className="w-full">
-                  Back
-                </Button>
-              </motion.div>
+              <GameOptions
+                gameCode={gameCode}
+                setGameCode={setGameCode}
+                onCreateGame={handleCreateGame}
+                onJoinGame={joinGame}
+                onBack={prevStep}
+                isLoading={isLoading}
+              />
             )}
 
             {step === "mode" && (
