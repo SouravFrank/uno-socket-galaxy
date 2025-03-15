@@ -8,64 +8,65 @@ interface DrawDeckCardProps {
   onClick: () => void;
 }
 
-const DrawDeckCard = ({ pendingDrawCount, isCurrentPlayer, onClick }: DrawDeckCardProps) => {
-  const shouldGlow = pendingDrawCount > 0 && isCurrentPlayer;
+const DrawDeckCard = ({
+  pendingDrawCount,
+  isCurrentPlayer,
+  onClick,
+}: DrawDeckCardProps) => {
+  const shouldGlow = isCurrentPlayer && pendingDrawCount > 0;
   
   return (
-    <div
-      className="group relative py-2 px-1 cursor-pointer"
-      onClick={isCurrentPlayer ? onClick : undefined}
-    >
+    <div className="relative">
+      {pendingDrawCount > 0 && (
+        <div className="absolute -top-3 -right-3 z-20 w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center font-bold text-sm border-2 border-white">
+          {pendingDrawCount}
+        </div>
+      )}
+    
       <motion.div
-        whileHover={isCurrentPlayer ? { y: -10, scale: 1.05 } : {}}
-        whileTap={isCurrentPlayer ? { scale: 0.95 } : {}}
         className={cn(
-          "relative w-14 h-22 sm:w-16 sm:h-24 md:w-20 md:h-30 rounded-xl",
-          "border-2 backdrop-blur-sm transition-all duration-300 border-white/20 dark:border-white/10",
-          !isCurrentPlayer && "opacity-70",
-          pendingDrawCount > 0 && isCurrentPlayer ? "animate-pulse" : ""
+          "relative w-14 h-20 sm:w-16 sm:h-24 md:w-20 md:h-28",
+          "rounded-xl overflow-hidden cursor-pointer transition-all duration-150",
+          "border-2 backdrop-blur-sm border-white/30 dark:border-white/20",
+          shouldGlow ? "animate-pulse" : ""
         )}
+        style={{
+          backgroundColor: "#240046",
+          backgroundImage: "radial-gradient(circle, #5a189a 0%, #240046 100%)",
+          boxShadow: shouldGlow ? "0 0 15px rgba(90, 24, 154, 0.8), 0 0 30px rgba(90, 24, 154, 0.5)" : "0 4px 8px rgba(0, 0, 0, 0.3)"
+        }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={onClick}
+        initial={{ rotateY: 0 }}
+        animate={{ rotateY: [0, 5, 0, -5, 0] }}
+        transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
       >
-        {/* Fancy background with futuristic pattern */}
-        <div className="absolute inset-0 rounded-xl overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-600 to-indigo-900">
-            {/* Futuristic grid pattern */}
-            <div className="absolute inset-0 opacity-20 bg-[linear-gradient(to_right,theme(colors.white/10)_1px,transparent_1px),linear-gradient(to_bottom,theme(colors.white/10)_1px,transparent_1px)] bg-[size:14px_14px]"></div>
-            
-            {/* Glowing circles */}
-            <div className="absolute top-0 right-0 w-10 h-10 rounded-full bg-fuchsia-500/20 blur-xl"></div>
-            <div className="absolute bottom-0 left-0 w-12 h-12 rounded-full bg-violet-500/30 blur-xl"></div>
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-cyan-400/60 blur-md"></div>
-          </div>
-        </div>
-        
-        {/* UNO logo */}
-        <div className="absolute inset-x-0 top-2 flex justify-center">
-          <span className="text-white font-extrabold tracking-wider text-xs sm:text-sm" style={{ textShadow: '0 0 8px rgba(255, 255, 255, 0.8)' }}>
-            UNO
-          </span>
-        </div>
-        
-        {/* Draw text */}
+        {/* Logo */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center">
-            <span className="text-white font-semibold text-[10px] sm:text-xs block" style={{ textShadow: '0 0 4px rgba(255, 255, 255, 0.8)' }}>
-              {pendingDrawCount > 0 && isCurrentPlayer 
-                ? `DRAW ${pendingDrawCount}` 
-                : "DRAW"}
-            </span>
-          </div>
+          <div className="text-3xl font-extrabold text-white drop-shadow-lg">UNO</div>
         </div>
-
-        {/* Small pattern at the bottom */}
-        <div className="absolute bottom-2 inset-x-0 flex justify-center">
-          <div className="w-8 h-1 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 rounded-full opacity-70"></div>
-        </div>
+        
+        {/* Card decorations */}
+        <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-red-500 opacity-80"></div>
+        <div className="absolute bottom-2 right-2 w-6 h-6 rounded-full bg-blue-500 opacity-80"></div>
+        <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-green-500 opacity-80"></div>
+        <div className="absolute bottom-2 left-2 w-6 h-6 rounded-full bg-yellow-500 opacity-80"></div>
+        
+        {/* Subtle patterns */}
+        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-white/0"></div>
+        
+        {/* Futuristic lines */}
+        <div className="absolute top-1/2 left-0 right-0 h-px bg-white/30"></div>
+        <div className="absolute left-1/2 top-0 bottom-0 w-px bg-white/30"></div>
       </motion.div>
       
-      {/* Enhanced glow effect for when player must draw */}
       {shouldGlow && (
-        <div className="absolute inset-0 bg-fuchsia-600/30 dark:bg-fuchsia-600/40 rounded-xl filter blur-md opacity-70 animate-pulse z-[-1]" />
+        <motion.div 
+          className="absolute inset-0 rounded-xl bg-purple-600/20 z-[-1]"
+          animate={{ scale: [1, 1.2, 1] }}
+          transition={{ repeat: Infinity, duration: 2 }}
+        />
       )}
     </div>
   );

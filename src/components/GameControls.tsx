@@ -5,6 +5,7 @@ import DrawDeckCard from "./DrawDeckCard";
 import { cn } from "@/lib/utils";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
 
 interface GameControlsProps {
   currentCard: UnoCardType;
@@ -33,11 +34,18 @@ const GameControls = ({
       />
       
       {/* Current card */}
-      <UnoCard
-        color={currentCard.color}
-        value={currentCard.value}
-        className="last-played"
-      />
+      <motion.div 
+        initial={{ rotateY: 0 }}
+        animate={{ rotateY: 360 }}
+        transition={{ duration: 0.5 }}
+        key={`${currentCard.color}-${currentCard.value}`}
+      >
+        <UnoCard
+          color={currentCard.color}
+          value={currentCard.value}
+          className="last-played"
+        />
+      </motion.div>
       
       {/* Flip deck button for UNO Flip mode */}
       {isFlipMode && (

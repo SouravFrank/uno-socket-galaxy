@@ -1,51 +1,48 @@
 
 import { Button } from "@/components/ui/button";
-import { Share2, Crown, CheckCircle2, Users } from "lucide-react";
-import { cn } from "@/lib/utils";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import ThemeToggle from "@/components/ThemeToggle";
+import { Crown, CheckCircle2, Users, Share2 } from "lucide-react";
 
 interface GameLobbyProps {
-  gameId: string;
-  players: any[];
-  isHost: boolean;
-  isReady: boolean;
+  gameState: any;
+  playerId: string | null;
+  isHost: boolean | undefined;
+  isReady: boolean | undefined;
   canStartGame: boolean;
-  onToggleReady: () => void;
-  onStartGame: () => void;
-  onCopyInviteLink: () => void;
   showInviteDialog: boolean;
-  setShowInviteDialog: (show: boolean) => void;
+  setShowInviteDialog: (value: boolean) => void;
+  toggleReady: () => void;
+  startGame: () => void;
+  copyInviteLink: () => void;
+  gameId: string | undefined;
 }
 
 const GameLobby = ({
-  gameId,
-  players,
+  gameState,
+  playerId,
   isHost,
   isReady,
   canStartGame,
-  onToggleReady,
-  onStartGame,
-  onCopyInviteLink,
   showInviteDialog,
   setShowInviteDialog,
+  toggleReady,
+  startGame,
+  copyInviteLink,
+  gameId
 }: GameLobbyProps) => {
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-red-500/10 via-blue-500/10 to-green-500/10">
+    <div className="min-h-screen w-full bg-gradient-to-br from-green-500/10 via-yellow-500/10 to-green-500/10 dark:from-green-900/20 dark:via-yellow-900/10 dark:to-green-900/20">
+      <ThemeToggle />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
-          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg p-6 shadow-xl">
+          <div className="grass-morphism p-6 shadow-xl">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold">Game Lobby</h2>
               <Button
                 variant="outline"
                 onClick={() => setShowInviteDialog(true)}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 grass-button"
               >
                 <Share2 className="w-4 h-4" />
                 Invite Players
@@ -55,10 +52,10 @@ const GameLobby = ({
             <div className="space-y-4 mb-6">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <Users className="w-5 h-5" />
-                Players ({players.length}/4)
+                Players ({gameState.players.length}/4)
               </h3>
               <div className="divide-y dark:divide-gray-700">
-                {players.map((player) => (
+                {gameState.players.map((player) => (
                   <div
                     key={player.id}
                     className="py-3 flex items-center justify-between"
@@ -72,7 +69,7 @@ const GameLobby = ({
                     {player.isReady ? (
                       <CheckCircle2 className="w-5 h-5 text-green-500" />
                     ) : (
-                      <span className="text-sm text-gray-500">Not Ready</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Not Ready</span>
                     )}
                   </div>
                 ))}
@@ -81,20 +78,19 @@ const GameLobby = ({
 
             <div className="flex gap-3">
               <Button
-                onClick={onToggleReady}
+                onClick={toggleReady}
                 variant={isReady ? "outline" : "default"}
-                className={cn(
-                  "flex-1",
-                  isReady && "bg-green-500 hover:bg-green-600"
-                )}
+                className={`flex-1 grass-button ${
+                  isReady && "bg-green-500/70 hover:bg-green-600/70"
+                }`}
               >
                 {isReady ? "Ready!" : "Click when ready"}
               </Button>
               {isHost && (
                 <Button
-                  onClick={onStartGame}
+                  onClick={startGame}
                   disabled={!canStartGame}
-                  className="flex-1 bg-blue-500 hover:bg-blue-600"
+                  className="flex-1 grass-button"
                 >
                   Start Game
                 </Button>
@@ -105,7 +101,7 @@ const GameLobby = ({
       </div>
 
       <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
-        <DialogContent>
+        <DialogContent className="glass-morphism dark:bg-gray-900/80">
           <DialogHeader>
             <DialogTitle>Invite Players</DialogTitle>
             <DialogDescription>
@@ -113,10 +109,10 @@ const GameLobby = ({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg text-center text-2xl font-mono">
+            <div className="p-4 bg-white/10 backdrop-blur-sm rounded-lg text-center text-2xl font-mono border border-white/20 dark:bg-black/30">
               {gameId}
             </div>
-            <Button onClick={onCopyInviteLink} className="w-full">
+            <Button onClick={copyInviteLink} className="w-full grass-button">
               Copy Invite Link
             </Button>
           </div>

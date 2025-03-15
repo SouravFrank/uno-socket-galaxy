@@ -1,10 +1,10 @@
 
-import { GameDirectionIndicator } from "@/components/GameDirectionIndicator";
-import { ChevronsRight } from "lucide-react";
+import { GameMode } from "@/types/game";
 import { cn } from "@/lib/utils";
+import GameDirectionIndicator from "@/components/GameDirectionIndicator";
 
 interface GameHeaderProps {
-  gameMode: string;
+  gameMode: GameMode;
   isFlipped?: boolean;
   currentPlayer: string;
   currentPlayerName: string;
@@ -16,57 +16,41 @@ interface GameHeaderProps {
 const GameHeader = ({
   gameMode,
   isFlipped,
-  currentPlayer,
   currentPlayerName,
   isCurrentPlayerMe,
   direction,
   directionChanged
 }: GameHeaderProps) => {
-  const gameModeTitle = 
-    gameMode === "classic" ? "Classic UNO" : 
-    gameMode === "flip" ? "UNO Flip" : 
-    gameMode === "doubles" ? "UNO Doubles" :
-    gameMode === "speed" ? "UNO Speed" :
-    gameMode === "nomercy" ? "UNO No Mercy" : "UNO";
-
   return (
-    <div className="space-y-4 text-center mb-4">
-      {/* Game title and side */}
-      <div className="flex justify-center gap-2">
-        <span className="px-3 py-1 rounded-full glass-morphism text-sm sm:text-base font-medium dark:bg-black/30">
-          {gameModeTitle}
-        </span>
-        {isFlipped !== undefined && (
-          <span className="px-3 py-1 rounded-full glass-morphism text-xs sm:text-sm dark:bg-black/30">
-            {isFlipped ? 'Dark Side' : 'Light Side'}
-          </span>
-        )}
+    <div className="flex flex-col gap-2 mb-8 items-center">
+      {/* Game mode */}
+      <div className="text-center">
+        <h1 className="text-2xl font-bold">
+          UNO {gameMode.charAt(0).toUpperCase() + gameMode.slice(1)}
+          {isFlipped && <span className="ml-2 text-purple-500 font-bold">FLIP</span>}
+        </h1>
       </div>
       
-      {/* Direction indicator */}
-      <div className="flex justify-center">
+      {/* Turn indicator */}
+      <div className="flex items-center justify-center gap-4 mt-2">
         <GameDirectionIndicator 
           direction={direction} 
-          directionChanged={directionChanged} 
+          changed={directionChanged} 
         />
-      </div>
-
-      {/* Current Turn Indicator */}
-      <div className="flex justify-center">
+        
         <div className={cn(
-          "inline-flex items-center gap-2 px-4 py-2 rounded-full glass-morphism dark:bg-black/30",
-          isCurrentPlayerMe && "neon-border"
+          "px-4 py-2 rounded-full text-center",
+          isCurrentPlayerMe
+            ? "bg-green-600/90 text-white font-medium animate-pulse"
+            : "bg-gray-700/50 text-white/90"
         )}>
-          <ChevronsRight className={cn(
-            "w-4 h-4",
-            isCurrentPlayerMe ? "text-green-400" : "text-gray-400"
-          )} />
-          <span className="text-sm font-medium truncate max-w-[150px]">
-            {isCurrentPlayerMe 
-              ? "Your Turn" 
-              : `${currentPlayerName}'s Turn`}
-          </span>
+          {isCurrentPlayerMe ? "Your turn!" : `${currentPlayerName}'s turn`}
         </div>
+        
+        <GameDirectionIndicator 
+          direction={direction} 
+          changed={directionChanged} 
+        />
       </div>
     </div>
   );

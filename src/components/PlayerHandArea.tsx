@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import UnoCard from "./UnoCard";
-import { GameState, UnoCard as UnoCardType } from "@/types/game";
+import { UnoCard as UnoCardType } from "@/types/game";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { motion } from "framer-motion";
@@ -15,7 +15,7 @@ interface PlayerHandAreaProps {
   onUnoButtonClick: () => void;
   canSayUno: boolean;
   isLearningMode: boolean;
-  gameState: GameState;
+  gameState: any; // Using any temporarily to fix type error
   playerId: string;
 }
 

@@ -4,8 +4,8 @@ import { cn } from "@/lib/utils";
 import { 
   Plus, 
   Shuffle,
-  CircleSlash, // For Skip symbol
-  ArrowLeftRight, // For Reverse symbol
+  Ban, // For Skip symbol
+  RefreshCw, // For Reverse symbol
 } from "lucide-react";
 
 export interface UnoCardProps {
@@ -23,140 +23,125 @@ const UnoCard = ({
   onClick,
   className,
 }: UnoCardProps) => {
-  // Base colors for cards that match official UNO colors
+  // Official UNO colors
   const baseColors = {
-    red: 'rgb(237, 28, 36)',
-    blue: 'rgb(0, 114, 188)',
-    green: 'rgb(0, 169, 79)',
-    yellow: 'rgb(255, 233, 0)',
-    black: 'rgb(35, 31, 32)'
+    red: '#ED1C24',
+    blue: '#0072BC',
+    green: '#00A94F',
+    yellow: '#FFED00',
+    black: '#000000'
   };
   
   // Shadow colors for glow effects
   const glowColors = {
-    red: 'rgba(237, 28, 36, 0.7)',
-    blue: 'rgba(0, 114, 188, 0.7)',
-    green: 'rgba(0, 169, 79, 0.7)',
-    yellow: 'rgba(255, 233, 0, 0.7)',
+    red: 'rgba(237, 28, 36, 0.8)',
+    blue: 'rgba(0, 114, 188, 0.8)',
+    green: 'rgba(0, 169, 79, 0.8)',
+    yellow: 'rgba(255, 237, 0, 0.8)',
     black: 'rgba(255, 255, 255, 0.7)',
   };
 
   // Dynamic shadow with enhanced glow for playable cards
   const cardShadow = isPlayable
-    ? `0 4px 6px rgba(0, 0, 0, 0.1), 0 0 10px ${glowColors[color]}, 0 0 20px ${glowColors[color]}`
-    : `0 4px 6px rgba(0, 0, 0, 0.1), 0 0 5px ${glowColors[color]}`;
+    ? `0 0 15px ${glowColors[color]}, 0 0 30px ${glowColors[color]}`
+    : `0 4px 8px rgba(0, 0, 0, 0.2)`;
 
-  // Color classes for card backgrounds
-  const colorClasses = {
-    red: `bg-[${baseColors.red}] border-red-400`,
-    blue: `bg-[${baseColors.blue}] border-blue-400`,
-    green: `bg-[${baseColors.green}] border-green-400`,
-    yellow: `bg-[${baseColors.yellow}] border-yellow-300`,
-    black: `bg-[${baseColors.black}] border-gray-700`,
-  };
-
-  // Determine the icon for special cards
-  const GetCardIcon = () => {
-    switch(String(value).toLowerCase()) {
+  // Get symbol for special cards
+  const getSymbol = () => {
+    switch (String(value)) {
       case "skip":
-        return <CircleSlash className="text-white/90 w-6 h-6 md:w-8 md:h-8" />;
+        return <Ban className="w-12 h-12 text-white stroke-[1.5] drop-shadow-md" />;
       case "reverse":
-        return <ArrowLeftRight className="text-white/90 w-6 h-6 md:w-8 md:h-8" />;
+        return <RefreshCw className="w-12 h-12 text-white stroke-[1.5] drop-shadow-md" />;
       case "+2":
         return (
-          <div className="relative">
-            <Plus className="text-white/90 w-5 h-5 md:w-7 md:h-7" />
-            <span className="absolute -top-1 -right-1 text-xs font-bold text-white bg-black/60 rounded-full w-5 h-5 flex items-center justify-center">2</span>
+          <div className="relative flex items-center justify-center">
+            <div className="text-3xl font-bold text-white drop-shadow-md">+2</div>
+          </div>
+        );
+      case "+4":
+        return (
+          <div className="relative flex items-center justify-center">
+            <div className="text-3xl font-bold text-white drop-shadow-md">+4</div>
           </div>
         );
       case "wild":
-        return <Shuffle className="text-white/90 w-6 h-6 md:w-8 md:h-8" />;
-      case "+4":
         return (
-          <div className="relative">
-            <Plus className="text-white/90 w-5 h-5 md:w-7 md:h-7" />
-            <span className="absolute -top-1 -right-1 text-xs font-bold text-white bg-black/60 rounded-full w-5 h-5 flex items-center justify-center">4</span>
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="w-14 h-14 rounded-full overflow-hidden relative">
+              <div className="absolute w-1/2 h-1/2 bg-red-600 top-0 left-0"></div>
+              <div className="absolute w-1/2 h-1/2 bg-blue-600 top-0 right-0"></div>
+              <div className="absolute w-1/2 h-1/2 bg-yellow-500 bottom-0 left-0"></div>
+              <div className="absolute w-1/2 h-1/2 bg-green-600 bottom-0 right-0"></div>
+            </div>
           </div>
         );
       default:
+        if (typeof value === "number") {
+          return <div className="text-5xl font-bold text-white drop-shadow-md">{value}</div>;
+        }
         return null;
     }
   };
 
-  // Get card value text for numbers
-  const getCardValueText = () => {
-    if (typeof value === "number") {
-      return value;
-    } 
-    return "";
-  };
+  // Determine text color
+  const textColor = color === "yellow" ? "#000000" : "#FFFFFF";
 
   return (
-    <div className="group relative py-2 px-1 cursor-pointer overflow-visible">
-      {/* Main card container with motion effects */}
-      <motion.div
-        whileHover={isPlayable ? { y: -10, scale: 1.05 } : {}}
-        whileTap={isPlayable ? { scale: 0.95 } : {}}
-        className={cn(
-          "relative w-14 h-22 sm:w-16 sm:h-24 md:w-20 md:h-30 rounded-xl overflow-hidden",
-          isPlayable 
-            ? "hover:shadow-xl hover:shadow-white/20 dark:hover:shadow-black/40 dark:ring-2 dark:ring-white/30" 
-            : "opacity-90",
-          "border-2 backdrop-blur-sm transition-all duration-300 border-white/20 dark:border-white/10",
-          "flex items-center justify-center",
-          className
-        )}
-        onClick={isPlayable ? onClick : undefined}
-        style={{ 
-          zIndex: isPlayable ? 10 : 1,
-          backgroundColor: baseColors[color],
-          boxShadow: cardShadow
-        }}
-      >
-        {/* Card oval design - similar to real UNO cards */}
-        <div className="absolute inset-[10%] bg-white/90 rounded-[100%] flex items-center justify-center transform -rotate-12">
-          {/* Central card content - number or icon */}
-          <div className="relative">
-            {/* For number cards */}
-            {typeof value === "number" && (
-              <span 
-                className="text-3xl sm:text-4xl font-extrabold transform -rotate-0" 
-                style={{ color: baseColors[color] }}
-              >
-                {value}
-              </span>
-            )}
-            
-            {/* For special cards */}
-            {typeof value !== "number" && (
-              <div className="flex flex-col items-center">
-                <div className="transform -rotate-0" style={{ color: baseColors[color] }}>
-                  <GetCardIcon />
-                </div>
-                <span className="text-xs font-semibold mt-1" style={{ color: baseColors[color] }}>
-                  {value}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-        
-        {/* Top-left corner number/symbol */}
-        <div className="absolute top-1 left-1 text-white font-bold text-xs">
-          {typeof value === "number" ? value : value === "+2" ? "+2" : value === "+4" ? "+4" : ""}
-        </div>
-        
-        {/* Bottom-right corner number/symbol (upside down) */}
-        <div className="absolute bottom-1 right-1 text-white font-bold text-xs transform rotate-180">
-          {typeof value === "number" ? value : value === "+2" ? "+2" : value === "+4" ? "+4" : ""}
-        </div>
-      </motion.div>
-      
-      {/* Enhanced glow effect for playable cards */}
-      {isPlayable && (
-        <div className="absolute inset-0 bg-white/30 dark:bg-white/20 rounded-xl filter blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-[-1] animate-pulse" />
+    <motion.div
+      className={cn(
+        "relative rounded-xl overflow-hidden cursor-pointer transition-all duration-150",
+        "w-14 h-20 sm:w-16 sm:h-24 md:w-20 md:h-28",
+        isPlayable && "hover:scale-110 z-10",
+        className
       )}
-    </div>
+      style={{ 
+        backgroundColor: baseColors[color],
+        boxShadow: cardShadow,
+      }}
+      whileHover={isPlayable ? { y: -10 } : {}}
+      whileTap={isPlayable ? { scale: 0.95 } : {}}
+      onClick={onClick}
+    >
+      {/* Card oval design */}
+      <div className="absolute inset-[15%] bg-white/90 rounded-[100%] transform -rotate-12 flex items-center justify-center">
+        {/* Card content */}
+        <div className="transform rotate-12 w-full h-full flex items-center justify-center">
+          {getSymbol()}
+        </div>
+      </div>
+      
+      {/* Top left corner - card value */}
+      <div 
+        className="absolute top-1 left-1 text-sm font-bold" 
+        style={{ color: textColor }}
+      >
+        {typeof value === "number" ? value : 
+         value === "+2" ? "+2" : 
+         value === "+4" ? "+4" : 
+         value === "wild" ? "W" : 
+         value === "skip" ? "S" : 
+         value === "reverse" ? "R" : ""}
+      </div>
+      
+      {/* Bottom right corner - card value (mirrored) */}
+      <div 
+        className="absolute bottom-1 right-1 text-sm font-bold transform rotate-180" 
+        style={{ color: textColor }}
+      >
+        {typeof value === "number" ? value : 
+         value === "+2" ? "+2" : 
+         value === "+4" ? "+4" : 
+         value === "wild" ? "W" : 
+         value === "skip" ? "S" : 
+         value === "reverse" ? "R" : ""}
+      </div>
+      
+      {/* Enhanced playable indicator */}
+      {isPlayable && (
+        <div className="absolute inset-0 rounded-xl animate-pulse mix-blend-overlay opacity-50 bg-white" />
+      )}
+    </motion.div>
   );
 };
 
