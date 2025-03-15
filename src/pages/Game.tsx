@@ -10,12 +10,13 @@ import LearningModeToggle from "@/components/LearningModeToggle";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { 
-  Share2, 
-  Crown, 
-  CheckCircle2, 
-  Users, 
+import {
+  Share2,
+  Crown,
+  CheckCircle2,
+  Users,
   RefreshCw,
   HandMetal,
   Volume2,
@@ -55,7 +56,7 @@ const Game = () => {
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [isUnoPressed, setIsUnoPressed] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [lastPlayedCard, setLastPlayedCard] = useState<{playerId: string, card: UnoCardType} | null>(null);
+  const [lastPlayedCard, setLastPlayedCard] = useState<{ playerId: string, card: UnoCardType } | null>(null);
   const [pendingDrawCount, setPendingDrawCount] = useState<number>(0);
 
   useEffect(() => {
@@ -120,12 +121,12 @@ const Game = () => {
   const toggleReady = () => {
     if (!gameState || !playerId) return;
     setGameState(togglePlayerReady(gameState, playerId));
-    
+
     // Make other players ready after some time
     setTimeout(() => {
       setGameState(prevState => {
         if (!prevState) return null;
-        let updatedState = {...prevState};
+        let updatedState = { ...prevState };
         // Make all AI players ready
         prevState.players.forEach(player => {
           if (player.id !== playerId) {
@@ -144,7 +145,7 @@ const Game = () => {
 
   const handlePlayCard = (cardId: string) => {
     if (!gameState || !playerId) return;
-    
+
     // If there's a pending draw count, player must draw first
     if (pendingDrawCount > 0 && gameState.currentPlayer === playerId) {
       toast({
@@ -154,24 +155,24 @@ const Game = () => {
       });
       return;
     }
-    
+
     const player = gameState.players.find(p => p.id === playerId);
     const card = player?.cards.find(c => c.id === cardId);
-    
+
     if (card) {
       // Check if player should have pressed UNO button
       const shouldPressUno = player && player.cards.length === 2;
-      
+
       const updatedState = playCardAction(gameState, playerId, cardId);
       setGameState(updatedState);
-      
+
       if (card) {
         setLastPlayedCard({
           playerId: "dummy", // Use "dummy" to identify user's move
           card: card
         });
       }
-      
+
       if (shouldPressUno && !isUnoPressed) {
         // Player forgot to press UNO
         setTimeout(() => {
@@ -183,9 +184,9 @@ const Game = () => {
           // Add penalty in real implementation
         }, 1000);
       }
-      
+
       setIsUnoPressed(false);
-      
+
       // Let AI players make moves after a delay
       if (updatedState.status === "playing" && updatedState.currentPlayer !== playerId) {
         setTimeout(simulateAIMove, 1500);
@@ -195,24 +196,24 @@ const Game = () => {
 
   const handleDrawCard = () => {
     if (!gameState || !playerId) return;
-    
+
     // Handle pending draw count
     if (pendingDrawCount > 0) {
       // Draw multiple cards equal to the pending count
-      let updatedState = {...gameState};
+      let updatedState = { ...gameState };
       for (let i = 0; i < pendingDrawCount; i++) {
         updatedState = drawCardAction(updatedState, playerId);
       }
       setGameState(updatedState);
       setPendingDrawCount(0);
-      
+
       // Move to next player
       setTimeout(simulateAIMove, 1500);
     } else {
       // Normal draw
       const updatedState = drawCardAction(gameState, playerId);
       setGameState(updatedState);
-      
+
       // Let AI players make moves after a delay
       if (updatedState.currentPlayer !== playerId) {
         setTimeout(simulateAIMove, 1500);
@@ -236,26 +237,26 @@ const Game = () => {
   const simulateAIMove = () => {
     setGameState(prevState => {
       if (!prevState) return null;
-      
+
       const currentPlayer = prevState.players.find(p => p.id === prevState.currentPlayer);
       if (!currentPlayer || currentPlayer.id === playerId) return prevState;
-      
+
       // Find playable cards
-      const playableCards = currentPlayer.cards.filter(card => 
+      const playableCards = currentPlayer.cards.filter(card =>
         isCardPlayable(card, prevState.currentCard)
       );
-      
+
       // Play a random playable card or draw
       if (playableCards.length > 0) {
         const randomCard = playableCards[Math.floor(Math.random() * playableCards.length)];
         const newState = playCardAction(prevState, currentPlayer.id, randomCard.id);
-        
+
         // Set the last played card
         setLastPlayedCard({
           playerId: currentPlayer.id,
           card: randomCard
         });
-        
+
         // Check if AI should say UNO
         if (currentPlayer.cards.length === 2) {
           // 50% chance AI forgets to say UNO
@@ -273,26 +274,26 @@ const Game = () => {
             // Implement penalty in real implementation
           }
         }
-        
+
         // Schedule next AI move if it's still AI's turn
         if (newState.currentPlayer !== playerId && newState.status === "playing") {
           setTimeout(simulateAIMove, 1500);
         }
-        
+
         return newState;
       } else {
         // Draw a card
         const newState = drawCardAction(prevState, currentPlayer.id);
-        
+
         toast({
           title: `${currentPlayer.name} draws a card`,
         });
-        
+
         // Schedule next AI move if it's still AI's turn
         if (newState.currentPlayer !== playerId && newState.status === "playing") {
           setTimeout(simulateAIMove, 1500);
         }
-        
+
         return newState;
       }
     });
@@ -314,9 +315,9 @@ const Game = () => {
   const isReady = myPlayer?.isReady;
   const allPlayersReady = gameState.players.every(p => p.isReady);
   const canStartGame = isHost && allPlayersReady && gameState.players.length >= 2;
-  
+
   const myCards = myPlayer?.cards || [];
-  const playableCards = myPlayer?.cards.filter(card => 
+  const playableCards = myPlayer?.cards.filter(card =>
     isCardPlayable(card, gameState.currentCard) && gameState.currentPlayer === playerId && pendingDrawCount === 0
   ) || [];
 
@@ -434,13 +435,66 @@ const Game = () => {
     );
   }
 
+
+
+  const UnoDrawCard = ({ pendingDrawCount, gameState, playerId, handleDrawCard }) => {
+    return (
+      <div className="group relative py-2 px-1" onClick={handleDrawCard}>
+        <motion.div
+          whileHover={{ y: -10, scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className={cn(
+            "relative w-14 h-22 sm:w-16 sm:h-24 md:w-20 md:h-30 rounded-xl",
+            "bg-[repeating-linear-gradient(45deg,#ff0000,#ff0000_10px,#ffa500_10px,#ffa500_20px,#ffff00_20px,#ffff00_30px)]",
+            "border-2 border-white/20 backdrop-blur-sm transition-all duration-300",
+            pendingDrawCount > 0 && gameState.currentPlayer === playerId ? "animate-pulse" : "",
+            "cursor-pointer"
+          )}
+          style={{
+            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1), 0 0 5px rgba(255, 255, 255, 0.7)"
+          }}
+        >
+          {/* Gradient overlay to soften the stripes */}
+          <div className="absolute inset-0 rounded-lg overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
+          </div>
+
+          {/* UNO text at the top, bold */}
+          <div className="absolute top-1 left-0 w-full text-center">
+            <span
+              className="text-[8px] sm:text-[10px] md:text-[12px] font-bold text-white tracking-widest"
+              style={{ textShadow: '0 0 3px white' }}
+            >
+              UNO
+            </span>
+          </div>
+
+          {/* Draw text centered */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
+            <span
+              className="text-white font-bold text-xs sm:text-sm md:text-base"
+              style={{ textShadow: '0 0 3px rgba(255, 255, 255, 0.7)' }}
+            >
+              {pendingDrawCount > 0 && gameState.currentPlayer === playerId
+                ? `Draw Card +${pendingDrawCount}`
+                : "Draw Card"}
+            </span>
+          </div>
+        </motion.div>
+
+        {/* Glow effect on hover */}
+        <div className="absolute inset-0 bg-white/30 dark:bg-white/20 rounded-xl filter blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-[-1]" />
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-green-500/10 via-yellow-500/10 to-green-500/10 dark:from-green-900/20 dark:via-yellow-900/10 dark:to-green-900/20 pb-24 sm:pb-32">
       {/* Theme Toggle */}
       <ThemeToggle />
-      
+
       {/* Sound toggle */}
-      <button 
+      <button
         onClick={() => setSoundEnabled(!soundEnabled)}
         className="fixed top-4 right-4 z-50 p-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 dark:bg-black/30"
       >
@@ -450,11 +504,11 @@ const Game = () => {
           <VolumeX className="w-5 h-5" />
         )}
       </button>
-      
+
       <LearningModeToggle />
       <GameHints playableCards={playableCards} isVisible={isLearningMode} />
-      <LastPlayedMove 
-        lastPlayedCard={lastPlayedCard} 
+      <LastPlayedMove
+        lastPlayedCard={lastPlayedCard}
         playerName={lastPlayedCard?.playerId === playerId ? "You" : gameState.players.find(p => p.id === lastPlayedCard?.playerId)?.name || ""}
         drawCount={pendingDrawCount > 0 && gameState.currentPlayer === playerId ? pendingDrawCount : undefined}
       />
@@ -463,11 +517,11 @@ const Game = () => {
         {/* Game mode and deck side indicator */}
         <div className="text-center mb-4 flex justify-center gap-2">
           <span className="px-3 py-1 rounded-full glass-morphism text-sm sm:text-base font-medium dark:bg-black/30">
-            {gameState.gameMode === "classic" ? "Classic UNO" : 
-             gameState.gameMode === "flip" ? "UNO Flip" : 
-             gameState.gameMode === "doubles" ? "UNO Doubles" :
-             gameState.gameMode === "speed" ? "UNO Speed" :
-             gameState.gameMode === "nomercy" ? "UNO No Mercy" : "UNO"}
+            {gameState.gameMode === "classic" ? "Classic UNO" :
+              gameState.gameMode === "flip" ? "UNO Flip" :
+                gameState.gameMode === "doubles" ? "UNO Doubles" :
+                  gameState.gameMode === "speed" ? "UNO Speed" :
+                    gameState.gameMode === "nomercy" ? "UNO No Mercy" : "UNO"}
           </span>
           {gameState.isFlipped !== undefined && (
             <span className="px-3 py-1 rounded-full glass-morphism text-xs sm:text-sm dark:bg-black/30">
@@ -487,8 +541,8 @@ const Game = () => {
               gameState.currentPlayer === playerId ? "text-green-400" : "text-gray-400"
             )} />
             <span className="text-sm font-medium">
-              {gameState.currentPlayer === playerId 
-                ? "Your Turn" 
+              {gameState.currentPlayer === playerId
+                ? "Your Turn"
                 : `${gameState.players.find(p => p.id === gameState.currentPlayer)?.name}'s Turn`}
             </span>
           </div>
@@ -497,8 +551,8 @@ const Game = () => {
         {/* Opponents */}
         <div className={cn(
           "grid gap-3 mb-6",
-          gameState.players.length <= 2 ? "grid-cols-1" : 
-          gameState.players.length <= 3 ? "grid-cols-2" : "grid-cols-3"
+          gameState.players.length <= 2 ? "grid-cols-1" :
+            gameState.players.length <= 3 ? "grid-cols-2" : "grid-cols-3"
         )}>
           {gameState.players
             .filter((p) => p.id !== playerId)
@@ -517,7 +571,7 @@ const Game = () => {
                   {player.name}
                 </h3>
                 <p className="text-xs text-gray-300 dark:text-gray-400 mb-2">{player.cards.length} cards</p>
-                
+
                 {/* Last played card indicator */}
                 {lastPlayedCard && lastPlayedCard.playerId === player.id && (
                   <div className="flex justify-center items-center mt-1">
@@ -533,39 +587,35 @@ const Game = () => {
         {/* Game area - central card and controls */}
         <div className="flex justify-center items-center gap-3 mb-6">
           {/* Draw pile */}
-          <div className="relative" onClick={pendingDrawCount > 0 && gameState.currentPlayer === playerId ? handleDrawCard : undefined}>
-            <div className={cn(
-              "uno-card-back w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 rounded-xl shadow-lg cursor-pointer border-2 border-gray-100/30 transform rotate-3",
-              pendingDrawCount > 0 && gameState.currentPlayer === playerId ? "animate-pulse" : ""
-            )}></div>
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <span className="text-white font-bold text-xs">
-                {pendingDrawCount > 0 && gameState.currentPlayer === playerId 
-                  ? `DRAW ${pendingDrawCount}` 
-                  : "DRAW"}
-              </span>
-            </div>
-          </div>
-          
+          <UnoDrawCard {...{ pendingDrawCount, gameState, playerId, handleDrawCard }} />
+
           {/* Current card */}
           <UnoCard
             color={gameState.currentCard.color}
             value={gameState.currentCard.value}
             className="last-played"
           />
-          
+
           {/* UNO button */}
           <Button
             onClick={handleUnoButton}
             disabled={!canSayUno}
             className={cn(
-              "rounded-full h-16 w-16 flex items-center justify-center font-bold text-lg",
-              canSayUno 
-                ? "bg-red-500 hover:bg-red-600 shadow-lg" 
+              "rounded-full h-16 w-46 flex items-center justify-center font-bold text-lg",
+              canSayUno
+                ? "bg-red-500 hover:bg-red-600 shadow-lg"
                 : "bg-gray-500/50 cursor-not-allowed dark:bg-gray-700/50"
             )}
           >
-            UNO
+            <HandMetal className={cn(
+              "rounded-full h-16 w-46 flex items-center justify-center font-bold text-lg",
+              canSayUno
+                ? "bg-red-500 hover:bg-red-600 shadow-lg"
+                : "bg-gray-500/50 cursor-not-allowed dark:bg-gray-700/50"
+            )} />
+            <span className="text-xs font-semibold text-white -top-2 -right-2 px-1">
+              UNO
+            </span>
           </Button>
         </div>
 
@@ -589,14 +639,14 @@ const Game = () => {
               isMobile ? "mobile-card-container" : ""
             )}>
               {myCards.map((card, index) => (
-                <div 
-                  key={card.id} 
+                <div
+                  key={card.id}
                   className={cn(
                     "transform transition-transform duration-300 hover:z-10",
                     isMobile ? "mobile-card-size" : "",
                     playableCards.some((c) => c.id === card.id) ? "hover:scale-110" : ""
                   )}
-                  style={{ 
+                  style={{
                     marginLeft: index > 0 ? "-2rem" : "0",
                     zIndex: index
                   }}

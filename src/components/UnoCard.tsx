@@ -1,12 +1,10 @@
-
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { 
-  RotateCcw, 
-  SkipForward, 
   Plus, 
   Shuffle,
-  Ban
+  CircleSlash, // For Skip symbol
+  ArrowLeftRight, // For Reverse symbol
 } from "lucide-react";
 
 export interface UnoCardProps {
@@ -24,21 +22,36 @@ const UnoCard = ({
   onClick,
   className,
 }: UnoCardProps) => {
-  const colorClasses = {
-    red: "bg-gradient-to-br from-red-600 to-red-700 border-red-400 shadow-red-500/30",
-    blue: "bg-gradient-to-br from-blue-600 to-blue-700 border-blue-400 shadow-blue-500/30",
-    green: "bg-gradient-to-br from-green-600 to-green-700 border-green-400 shadow-green-500/30",
-    yellow: "bg-gradient-to-br from-yellow-500 to-yellow-600 border-yellow-300 shadow-yellow-400/30",
-    black: "bg-gradient-to-br from-gray-800 to-black border-gray-700 shadow-gray-700/30",
+  // Glow colors for futuristic neon effects
+  const glowColors = {
+    red: 'rgba(239, 68, 68, 0.7)',
+    blue: 'rgba(59, 130, 246, 0.7)',
+    green: 'rgba(34, 197, 94, 0.7)',
+    yellow: 'rgba(234, 179, 8, 0.7)',
+    black: 'rgba(255, 255, 255, 0.7)',
   };
 
-  // Function to determine the icon based on card value
-  const getCardIcon = () => {
-    switch(value) {
-      case "Skip":
-        return <Ban className="text-white/90 w-6 h-6 md:w-8 md:h-8" />;
-      case "Reverse":
-        return <RotateCcw className="text-white/90 w-6 h-6 md:w-8 md:h-8" />;
+  // Dynamic shadow with enhanced glow for playable cards
+  const cardShadow = isPlayable
+    ? `0 4px 6px rgba(0, 0, 0, 0.1), 0 0 10px ${glowColors[color]}, 0 0 20px ${glowColors[color]}, 0 0 30px ${glowColors[color]}`
+    : `0 4px 6px rgba(0, 0, 0, 0.1), 0 0 5px ${glowColors[color]}`;
+
+  // Gradient color classes for card backgrounds
+  const colorClasses = {
+    red: "bg-gradient-to-br from-red-600 to-red-700 border-red-400",
+    blue: "bg-gradient-to-br from-blue-600 to-blue-700 border-blue-400",
+    green: "bg-gradient-to-br from-green-600 to-green-700 border-green-400",
+    yellow: "bg-gradient-to-br from-yellow-500 to-yellow-600 border-yellow-300",
+    black: "bg-gradient-to-br from-gray-800 to-black border-gray-700",
+  };
+
+  // Determine the icon for Trump cards with unique symbols
+  const GetCardIcon = () => {
+    switch(String(value).toLowerCase()) {
+      case "skip":
+        return <CircleSlash className="text-white/90 w-6 h-6 md:w-8 md:h-8" />;
+      case "reverse":
+        return <ArrowLeftRight className="text-white/90 w-6 h-6 md:w-8 md:h-8" />;
       case "+2":
         return (
           <div className="relative">
@@ -46,7 +59,7 @@ const UnoCard = ({
             <span className="absolute -top-1 -right-1 text-xs font-bold text-white bg-black/40 rounded-full w-4 h-4 flex items-center justify-center">2</span>
           </div>
         );
-      case "Wild":
+      case "wild":
         return <Shuffle className="text-white/90 w-6 h-6 md:w-8 md:h-8" />;
       case "+4":
         return (
@@ -60,16 +73,20 @@ const UnoCard = ({
     }
   };
 
-  // Function to get card value text
+  // Get card value text for numbers and draw cards
   const getCardValueText = () => {
     if (typeof value === "number" || value === "+2" || value === "+4") {
       return value;
     }
     return "";
   };
+  if (typeof value === 'number') {
+    console.log("Value", value, typeof value, getCardValueText() === 0, "TEST", );
+  }
 
   return (
     <div className="group relative py-2 px-1">
+      {/* Main card container with motion effects */}
       <motion.div
         whileHover={isPlayable ? { y: -10, scale: 1.05 } : {}}
         whileTap={isPlayable ? { scale: 0.95 } : {}}
@@ -85,60 +102,63 @@ const UnoCard = ({
         onClick={isPlayable ? onClick : undefined}
         style={{ 
           zIndex: isPlayable ? 10 : 1, 
-          boxShadow: isPlayable ? "0 0 15px rgba(255, 255, 255, 0.5)" : "0 4px 6px rgba(0, 0, 0, 0.1)" 
+          boxShadow: cardShadow
         }}
       >
-        {/* Card Pattern */}
+        {/* Futuristic card pattern without text branding */}
         <div className="absolute inset-0 rounded-lg overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent">
             {color !== "black" && (
               <div className="absolute inset-0">
                 <div className="absolute top-[10%] left-[10%] right-[10%] bottom-[10%] rounded-full border-[8px] border-white/20 flex items-center justify-center">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="font-bold text-5xl text-white/30 transform -rotate-30">
-                      UNO
-                    </span>
-                  </div>
+                  {/* Subtle tech pattern overlay */}
+                  <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.2)_0%,transparent_70%)]" />
                 </div>
               </div>
+            )}
+            {color === "black" && (
+              <div className="absolute inset-0 opacity-50 bg-[linear-gradient(45deg,rgba(255,255,255,0.1)_25%,transparent_25%,transparent_75%,rgba(255,255,255,0.1)_75%)] bg-[length:4px_4px]" />
             )}
           </div>
         </div>
 
-        {/* Card Value */}
+        {/* Card value or icon display */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="relative">
             {/* Top-left mini value */}
-            <span className="absolute -top-[20px] -left-[16px] text-xs font-bold text-white/90 drop-shadow-md">
+            <span className="absolute -top-[20px] -left-[16px] text-xs font-bold text-white/90 drop-shadow-md" style={{ textShadow: `0 0 3px ${glowColors[color]}` }}>
               {getCardValueText()}
             </span>
             
-            {/* Main value or icon */}
-            <div className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg transform -rotate-12">
-              {getCardIcon() || getCardValueText()}
-            </div>
+            {/* Main value or icon with neon glow */}
+            {!getCardValueText() && getCardValueText()!== 0 ? (
+              <div className="transform -rotate-12" style={{ filter: `drop-shadow(0 0 5px ${glowColors[color]})` }}>
+                <GetCardIcon />
+              </div>
+            ) : (
+              <span className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg transform -rotate-12" style={{ textShadow: `0 0 5px ${glowColors[color]}, 0 0 10px ${glowColors[color]}` }}>
+                {getCardValueText()}
+              </span>
+            )}
             
             {/* Bottom-right mini value */}
-            <span className="absolute -bottom-[20px] -right-[16px] text-xs font-bold text-white/90 drop-shadow-md rotate-180">
+            <span className="absolute -bottom-[20px] -right-[16px] text-xs font-bold text-white/90 drop-shadow-md rotate-180" style={{ textShadow: `0 0 3px ${glowColors[color]}` }}>
               {getCardValueText()}
             </span>
           </div>
         </div>
 
         {/* Special card description */}
-        {typeof value !== "number" && (
+        {typeof value !== "number" && value !== '+2' && value !== '+4' && (
           <div className="absolute bottom-1 left-0 right-0 text-center">
-            <span className="text-[6px] font-medium text-white/80">{value}</span>
+            <span className="text-[16px] font-medium text-white/80" style={{ textShadow: '0 0 2px white' }}>
+              {value}
+            </span>
           </div>
         )}
-
-        {/* UNO Logo */}
-        <div className="absolute top-1 left-0 w-full">
-          <span className="text-[8px] font-bold text-white/80 tracking-widest">UNO</span>
-        </div>
       </motion.div>
       
-      {/* Glow effect for playable cards */}
+      {/* Enhanced glow effect for playable cards */}
       {isPlayable && (
         <div className="absolute inset-0 bg-white/30 dark:bg-white/20 rounded-xl filter blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-[-1] animate-pulse" />
       )}

@@ -18,7 +18,7 @@ interface LastPlayedMoveProps {
 }
 
 const LastPlayedMove = ({ moveHistory, drawCount, direction, directionChanged }: LastPlayedMoveProps) => {
-  const recentMoves = moveHistory.slice(-3).reverse();
+  const recentMoves = moveHistory ? moveHistory.slice(-3).reverse() : [];
   
   if (recentMoves.length === 0 && !drawCount) return null;
 
