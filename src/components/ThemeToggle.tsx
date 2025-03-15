@@ -29,7 +29,7 @@ const ThemeToggle = () => {
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
       onClick={() => setIsDarkMode(!isDarkMode)}
-      className="fixed top-4 left-4 z-50 p-2 rounded-full bg-white/10 dark:bg-black/20 backdrop-blur-sm border border-white/20 dark:border-white/10"
+      className="fixed top-4 left-4 z-50 p-2 rounded-full glass-morphism border-2 border-white/30 dark:border-white/20 shadow-md"
       aria-label="Toggle theme"
     >
       {isDarkMode ? (

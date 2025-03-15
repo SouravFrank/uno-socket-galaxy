@@ -1,70 +1,68 @@
-export type GameMode = {
-  id: string;
+import { v4 as uuidv4 } from 'uuid';
+
+export type GameMode = "classic" | "flip" | "doubles" | "speed" | "nomercy";
+
+export interface GameModeInfo {
+  id: GameMode;
   name: string;
   description: string;
   difficulty: "Easy" | "Medium" | "Hard";
   rules: string[];
-};
+}
 
-export const gameModes: GameMode[] = [
+export const gameModes: GameModeInfo[] = [
   {
     id: "classic",
-    name: "UNO Classic",
-    description: "The original UNO game with standard rules and gameplay mechanics.",
+    name: "Classic UNO",
+    description: "The original UNO game with standard rules.",
     difficulty: "Easy",
     rules: [
       "Match cards by color or number",
-      "Use action cards to skip, reverse, or make others draw",
-      "Say 'UNO' when you have one card left",
-      "First player to get rid of all cards wins"
-    ]
-  },
-  {
-    id: "doubles",
-    name: "UNO Doubles",
-    description: "Play two matching cards at once to create powerful combinations and strategic plays.",
-    difficulty: "Medium",
-    rules: [
-      "Play two cards of the same number in one turn",
-      "Doubles stack with action cards",
-      "More complex strategies required",
-      "Faster-paced gameplay"
-    ]
-  },
-  {
-    id: "speed",
-    name: "UNO Speed",
-    description: "Fast-paced variant where players have limited time to make their moves.",
-    difficulty: "Hard",
-    rules: [
-      "15-second turn timer",
-      "Auto-draw if time runs out",
-      "Quick thinking required",
-      "Perfect for experienced players"
+      "Special cards: Skip, Reverse, Draw Two, Wild, Wild Draw Four"
     ]
   },
   {
     id: "flip",
     name: "UNO Flip",
-    description: "Play with two-sided cards, switching between light and dark sides for added complexity.",
+    description: "Play with two-sided cards - flip between light and dark sides!",
+    difficulty: "Medium",
+    rules: [
+      "Standard UNO rules plus the Flip card",
+      "Flip card changes gameplay to the other side of all cards",
+      "Dark side has more powerful cards with bigger penalties"
+    ]
+  },
+  {
+    id: "doubles",
+    name: "UNO Doubles",
+    description: "Play two cards at once if they match!",
+    difficulty: "Medium",
+    rules: [
+      "Standard UNO rules plus ability to play two matching cards at once",
+      "Matching means same number or same special card type",
+      "Playing doubles skips the next player"
+    ]
+  },
+  {
+    id: "speed",
+    name: "UNO Speed",
+    description: "Fast-paced UNO with a timer for each turn!",
     difficulty: "Hard",
     rules: [
-      "Cards have two sides with different values",
-      "Flip cards change game dynamics",
-      "Unique action cards on dark side",
-      "Strategic deck flipping mechanics"
+      "Standard UNO rules with a 5-second timer for each turn",
+      "If time runs out, draw a card and lose your turn",
+      "No card stacking or challenges"
     ]
   },
   {
     id: "nomercy",
     name: "UNO No Mercy",
-    description: "Intense variant where action cards can be stacked, leading to dramatic turns.",
+    description: "Ultimate UNO challenge with special penalties!",
     difficulty: "Hard",
     rules: [
-      "Stack Draw 2 and Draw 4 cards",
-      "No limits on action card chains",
-      "Highly competitive gameplay",
-      "Dramatic comebacks possible"
+      "All penalty cards can be stacked",
+      "If you can't play, keep drawing until you can",
+      "Forget to say UNO? Draw FOUR cards!"
     ]
   }
 ].sort((a, b) => {
