@@ -8,7 +8,20 @@ import LearningModeToggle from "@/components/LearningModeToggle";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
-import { Share2, Crown, CheckCircle2, Users } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { 
+  Share2, 
+  Crown, 
+  CheckCircle2, 
+  Users, 
+  RefreshCw,
+  HandMetal,
+  Plus,
+  Volume2,
+  VolumeX,
+  ArrowLeftRight,
+  ChevronsRight
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -36,9 +49,13 @@ const Game = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isLearningMode } = useLearningStore();
+  const isMobile = useIsMobile();
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
+  const [isUnoPressed, setIsUnoPressed] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [lastPlayedCard, setLastPlayedCard] = useState<{playerId: string, card: UnoCardType} | null>(null);
 
   useEffect(() => {
     if (!gameId) {
@@ -117,12 +134,41 @@ const Game = () => {
 
   const handlePlayCard = (cardId: string) => {
     if (!gameState || !playerId) return;
-    const updatedState = playCardAction(gameState, playerId, cardId);
-    setGameState(updatedState);
+    const player = gameState.players.find(p => p.id === playerId);
+    const card = player?.cards.find(c => c.id === cardId);
     
-    // Let AI players make moves after a delay
-    if (updatedState.status === "playing" && updatedState.currentPlayer !== playerId) {
-      setTimeout(simulateAIMove, 1500);
+    if (card) {
+      // Check if player should have pressed UNO button
+      const shouldPressUno = player && player.cards.length === 2;
+      
+      const updatedState = playCardAction(gameState, playerId, cardId);
+      setGameState(updatedState);
+      
+      if (card) {
+        setLastPlayedCard({
+          playerId: playerId,
+          card: card
+        });
+      }
+      
+      if (shouldPressUno && !isUnoPressed) {
+        // Player forgot to press UNO
+        setTimeout(() => {
+          toast({
+            title: "Forgot to say UNO!",
+            description: "You'll have to draw two cards as penalty.",
+            variant: "destructive",
+          });
+          // Add penalty in real implementation
+        }, 1000);
+      }
+      
+      setIsUnoPressed(false);
+      
+      // Let AI players make moves after a delay
+      if (updatedState.status === "playing" && updatedState.currentPlayer !== playerId) {
+        setTimeout(simulateAIMove, 1500);
+      }
     }
   };
 
@@ -135,6 +181,14 @@ const Game = () => {
     if (updatedState.currentPlayer !== playerId) {
       setTimeout(simulateAIMove, 1500);
     }
+  };
+
+  const handleUnoButton = () => {
+    setIsUnoPressed(true);
+    toast({
+      title: "UNO!",
+      description: "You said UNO!",
+    });
   };
 
   const handleFlipDeck = () => {
@@ -159,6 +213,30 @@ const Game = () => {
         const randomCard = playableCards[Math.floor(Math.random() * playableCards.length)];
         const newState = playCardAction(prevState, currentPlayer.id, randomCard.id);
         
+        // Set the last played card
+        setLastPlayedCard({
+          playerId: currentPlayer.id,
+          card: randomCard
+        });
+        
+        // Check if AI should say UNO
+        if (currentPlayer.cards.length === 2) {
+          // 50% chance AI forgets to say UNO
+          const saysUno = Math.random() > 0.5;
+          if (saysUno) {
+            toast({
+              title: `${currentPlayer.name} says UNO!`,
+            });
+          } else {
+            toast({
+              title: `${currentPlayer.name} forgot to say UNO!`,
+              description: "They'll draw two cards as penalty.",
+              variant: "destructive",
+            });
+            // Implement penalty in real implementation
+          }
+        }
+        
         // Schedule next AI move if it's still AI's turn
         if (newState.currentPlayer !== playerId && newState.status === "playing") {
           setTimeout(simulateAIMove, 1500);
@@ -168,6 +246,10 @@ const Game = () => {
       } else {
         // Draw a card
         const newState = drawCardAction(prevState, currentPlayer.id);
+        
+        toast({
+          title: `${currentPlayer.name} draws a card`,
+        });
         
         // Schedule next AI move if it's still AI's turn
         if (newState.currentPlayer !== playerId && newState.status === "playing") {
@@ -181,8 +263,9 @@ const Game = () => {
 
   if (!gameState) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-500/10 via-yellow-500/10 to-green-500/10">
+        <div className="text-center glass-morphism p-8 rounded-xl">
+          <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-green-500" />
           <h2 className="text-2xl font-bold mb-2">Loading Game...</h2>
         </div>
       </div>
@@ -200,18 +283,20 @@ const Game = () => {
     isCardPlayable(card, gameState.currentCard) && gameState.currentPlayer === playerId
   ) || [];
 
+  const canSayUno = myPlayer && myPlayer.cards.length === 2 && gameState.currentPlayer === playerId;
+
   if (gameState.status === "waiting") {
     return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-red-500/10 via-blue-500/10 to-green-500/10">
+      <div className="min-h-screen w-full bg-gradient-to-br from-green-500/10 via-yellow-500/10 to-green-500/10">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-2xl mx-auto">
-            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg p-6 shadow-xl">
+            <div className="grass-morphism p-6 shadow-xl">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold">Game Lobby</h2>
                 <Button
                   variant="outline"
                   onClick={() => setShowInviteDialog(true)}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 grass-button"
                 >
                   <Share2 className="w-4 h-4" />
                   Invite Players
@@ -250,8 +335,8 @@ const Game = () => {
                   onClick={toggleReady}
                   variant={isReady ? "outline" : "default"}
                   className={cn(
-                    "flex-1",
-                    isReady && "bg-green-500 hover:bg-green-600"
+                    "flex-1 grass-button",
+                    isReady && "bg-green-500/70 hover:bg-green-600/70"
                   )}
                 >
                   {isReady ? "Ready!" : "Click when ready"}
@@ -260,7 +345,7 @@ const Game = () => {
                   <Button
                     onClick={startGame}
                     disabled={!canStartGame}
-                    className="flex-1 bg-blue-500 hover:bg-blue-600"
+                    className="flex-1 grass-button"
                   >
                     Start Game
                   </Button>
@@ -271,7 +356,7 @@ const Game = () => {
         </div>
 
         <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
-          <DialogContent>
+          <DialogContent className="glass-morphism">
             <DialogHeader>
               <DialogTitle>Invite Players</DialogTitle>
               <DialogDescription>
@@ -279,10 +364,10 @@ const Game = () => {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg text-center text-2xl font-mono">
+              <div className="p-4 bg-white/10 backdrop-blur-sm rounded-lg text-center text-2xl font-mono border border-white/20">
                 {gameId}
               </div>
-              <Button onClick={copyInviteLink} className="w-full">
+              <Button onClick={copyInviteLink} className="w-full grass-button">
                 Copy Invite Link
               </Button>
             </div>
@@ -295,13 +380,14 @@ const Game = () => {
   if (gameState.status === "finished") {
     const winner = gameState.players.find(p => p.id === gameState.winner);
     return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-red-500/10 via-blue-500/10 to-green-500/10 flex items-center justify-center">
-        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg p-8 shadow-xl text-center">
+      <div className="min-h-screen w-full bg-gradient-to-br from-green-500/10 via-yellow-500/10 to-green-500/10 flex items-center justify-center">
+        <div className="grass-morphism p-8 shadow-xl text-center">
           <h2 className="text-3xl font-bold mb-4">Game Over!</h2>
+          <Crown className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
           <p className="text-xl mb-6">
             {winner?.name || "Someone"} has won the game!
           </p>
-          <Button onClick={() => navigate('/')} className="bg-blue-500 hover:bg-blue-600">
+          <Button onClick={() => navigate('/')} className="grass-button">
             Back to Home
           </Button>
         </div>
@@ -310,75 +396,174 @@ const Game = () => {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-red-500/10 via-blue-500/10 to-green-500/10">
+    <div className="min-h-screen w-full bg-gradient-to-br from-green-500/10 via-yellow-500/10 to-green-500/10 pb-24 sm:pb-32">
+      {/* Sound toggle */}
+      <button 
+        onClick={() => setSoundEnabled(!soundEnabled)}
+        className="fixed top-4 right-4 z-50 p-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20"
+      >
+        {soundEnabled ? (
+          <Volume2 className="w-5 h-5" />
+        ) : (
+          <VolumeX className="w-5 h-5" />
+        )}
+      </button>
+      
       <LearningModeToggle />
       <GameHints playableCards={playableCards} isVisible={isLearningMode} />
 
-      <div className="container mx-auto px-4 py-8">
-        {gameState.isFlipped !== undefined && (
-          <div className="text-center mb-4">
-            <span className="px-4 py-2 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
+        {/* Game mode and deck side indicator */}
+        <div className="text-center mb-4 flex justify-center gap-2">
+          <span className="px-3 py-1 rounded-full glass-morphism text-xs sm:text-sm">
+            {gameState.gameMode === "classic" ? "Classic UNO" : 
+             gameState.gameMode === "flip" ? "UNO Flip" : "UNO"}
+          </span>
+          {gameState.isFlipped !== undefined && (
+            <span className="px-3 py-1 rounded-full glass-morphism text-xs sm:text-sm">
               {gameState.isFlipped ? 'Dark Side' : 'Light Side'}
             </span>
-          </div>
-        )}
+          )}
+        </div>
 
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        {/* Current Turn Indicator */}
+        <div className="text-center mb-4">
+          <div className={cn(
+            "inline-flex items-center gap-2 px-4 py-2 rounded-full glass-morphism",
+            gameState.currentPlayer === playerId && "neon-border"
+          )}>
+            <ChevronsRight className={cn(
+              "w-4 h-4",
+              gameState.currentPlayer === playerId ? "text-green-400" : "text-gray-400"
+            )} />
+            <span className="text-sm font-medium">
+              {gameState.currentPlayer === playerId 
+                ? "Your Turn" 
+                : `${gameState.players.find(p => p.id === gameState.currentPlayer)?.name}'s Turn`}
+            </span>
+          </div>
+        </div>
+
+        {/* Opponents */}
+        <div className={cn(
+          "grid gap-3 mb-6",
+          gameState.players.length <= 2 ? "grid-cols-1" : 
+          gameState.players.length <= 3 ? "grid-cols-2" : "grid-cols-3"
+        )}>
           {gameState.players
             .filter((p) => p.id !== playerId)
             .map((player) => (
               <div
                 key={player.id}
                 className={cn(
-                  "text-center p-4 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm",
-                  player.id === gameState.currentPlayer && "ring-2 ring-blue-500"
+                  "text-center p-3 rounded-lg glass-morphism relative",
+                  player.id === gameState.currentPlayer && "player-active"
                 )}
               >
-                <h3 className="font-medium mb-2">{player.name}</h3>
-                <p className="text-sm text-gray-500">{player.cards.length} cards</p>
+                <h3 className="font-medium mb-1 flex items-center justify-center gap-1">
+                  {player.id === gameState.currentPlayer && (
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                  )}
+                  {player.name}
+                </h3>
+                <p className="text-xs text-gray-300 mb-2">{player.cards.length} cards</p>
+                
+                {/* Last played card indicator */}
+                {lastPlayedCard && lastPlayedCard.playerId === player.id && (
+                  <div className="flex justify-center items-center mt-1">
+                    <div className="text-xs px-2 py-1 rounded bg-white/10 flex items-center gap-1">
+                      <ArrowLeftRight className="w-3 h-3" />
+                      Last played: {lastPlayedCard.card.color} {lastPlayedCard.card.value}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
         </div>
 
-        <div className="flex justify-center mb-8">
+        {/* Game area - central card */}
+        <div className="flex justify-center items-center gap-4 mb-6">
+          {/* Draw pile */}
+          <div className="relative" onClick={handleDrawCard}>
+            <div className="uno-card-back w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 rounded-xl shadow-lg cursor-pointer border-2 border-gray-100/30 transform rotate-3"></div>
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <span className="text-white font-bold text-xs">DRAW</span>
+            </div>
+          </div>
+          
+          {/* Current card */}
           <UnoCard
             color={gameState.currentCard.color}
             value={gameState.currentCard.value}
+            className="last-played"
           />
+          
+          {/* UNO button */}
+          <Button
+            onClick={handleUnoButton}
+            disabled={!canSayUno}
+            className={cn(
+              "rounded-full h-16 w-16 flex items-center justify-center font-bold text-lg",
+              canSayUno 
+                ? "bg-red-500 hover:bg-red-600 shadow-lg" 
+                : "bg-gray-500/50 cursor-not-allowed"
+            )}
+          >
+            <HandMetal className="w-8 h-8" />
+          </Button>
         </div>
 
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
-          <div className="flex justify-center gap-2 mb-4">
-            <Button
-              onClick={handleDrawCard}
-              variant="outline"
-              className="bg-white dark:bg-gray-700"
-              disabled={gameState.currentPlayer !== playerId}
-            >
-              Draw Card
-            </Button>
-            
-            {gameState.gameMode === "flip" && (
+        {/* Player hand */}
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-black/30 backdrop-blur-sm border-t border-white/10">
+          <div className="container mx-auto">
+            <div className="flex justify-center gap-2 mb-3">
               <Button
-                onClick={handleFlipDeck}
+                onClick={handleDrawCard}
                 variant="outline"
-                className="bg-white dark:bg-gray-700"
+                className="glass-morphism text-white border-white/20"
                 disabled={gameState.currentPlayer !== playerId}
               >
-                Flip Deck
+                <Plus className="w-4 h-4 mr-1" /> Draw Card
               </Button>
-            )}
-          </div>
-          <div className="flex justify-center gap-2 overflow-x-auto pb-4">
-            {myCards.map((card) => (
-              <UnoCard
-                key={card.id}
-                color={card.color}
-                value={card.value}
-                isPlayable={playableCards.some((c) => c.id === card.id) && gameState.currentPlayer === playerId}
-                onClick={() => handlePlayCard(card.id)}
-              />
-            ))}
+              
+              {gameState.gameMode === "flip" && (
+                <Button
+                  onClick={handleFlipDeck}
+                  variant="outline"
+                  className="glass-morphism text-white border-white/20"
+                  disabled={gameState.currentPlayer !== playerId}
+                >
+                  <RefreshCw className="w-4 h-4 mr-1" /> Flip Deck
+                </Button>
+              )}
+            </div>
+            <div className={cn(
+              "flex justify-center overflow-x-auto pb-4 gap-[-10px] sm:gap-[-15px]",
+              isMobile ? "mobile-card-container" : ""
+            )}>
+              {myCards.map((card, index) => (
+                <div 
+                  key={card.id} 
+                  className={cn(
+                    "transform transition-transform duration-300 hover:z-10",
+                    isMobile ? "mobile-card-size" : "",
+                    playableCards.some((c) => c.id === card.id) ? "hover:scale-110" : ""
+                  )}
+                  style={{ 
+                    marginLeft: index > 0 ? "-2rem" : "0",
+                    zIndex: index
+                  }}
+                >
+                  <UnoCard
+                    key={card.id}
+                    color={card.color}
+                    value={card.value}
+                    isPlayable={playableCards.some((c) => c.id === card.id) && gameState.currentPlayer === playerId}
+                    onClick={() => handlePlayCard(card.id)}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

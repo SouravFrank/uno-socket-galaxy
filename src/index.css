@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -76,6 +77,7 @@
   }
 }
 
+/* Card styles */
 .uno-card-back {
   background: repeating-linear-gradient(
     45deg,
@@ -86,15 +88,76 @@
   );
 }
 
-.glass-card {
-  backdrop-filter: blur(16px) saturate(180%);
-  background-color: rgba(255, 255, 255, 0.75);
+/* Glassmorphism */
+.glass-morphism {
+  backdrop-filter: blur(12px);
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+/* Grassmorphism */
+.grass-morphism {
+  background: linear-gradient(184.1deg, rgba(249, 255, 182, 0.2) 44.7%, rgba(226, 255, 172, 0.2) 67.2%);
+  box-shadow: 0 8px 32px rgba(134, 251, 120, 0.1);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(154, 255, 137, 0.2);
   border-radius: 12px;
-  border: 1px solid rgba(209, 213, 219, 0.3);
+}
+
+.grass-card {
+  background: linear-gradient(90deg, hsla(139, 70%, 75%, 0.2) 0%, hsla(63, 90%, 76%, 0.2) 100%);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(154, 255, 137, 0.2);
+  border-radius: 12px;
+}
+
+.grass-button {
+  background: linear-gradient(90deg, hsla(139, 70%, 75%, 0.7) 0%, hsla(63, 90%, 76%, 0.7) 100%);
+  color: rgba(0, 70, 67, 0.9);
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(134, 251, 120, 0.2);
+  transition: all 0.3s ease;
+}
+
+.grass-button:hover {
+  box-shadow: 0 6px 16px rgba(134, 251, 120, 0.3);
+  transform: translateY(-2px);
+}
+
+/* Futuristic UI */
+.neon-border {
+  box-shadow: 0 0 5px rgba(0, 255, 240, 0.5), 
+              0 0 10px rgba(0, 255, 240, 0.3), 
+              0 0 15px rgba(0, 255, 240, 0.1);
+}
+
+.futuristic-panel {
+  background: rgba(30, 41, 59, 0.5);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.player-active {
+  animation: pulse-border 2s infinite;
+}
+
+@keyframes pulse-border {
+  0% {
+    box-shadow: 0 0 0 0 rgba(134, 251, 120, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(134, 251, 120, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(134, 251, 120, 0);
+  }
 }
 
 .hint-bubble {
-  @apply fixed left-4 top-20 max-w-xs bg-white/90 dark:bg-gray-800/90 p-4 rounded-lg shadow-lg backdrop-blur-sm;
+  @apply fixed left-4 top-20 max-w-xs glass-morphism;
   animation: fadeIn 0.3s ease-out;
 }
 
@@ -106,5 +169,42 @@
   to {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+/* Card Animations */
+.card-hover-effect {
+  transition: transform 0.3s ease;
+}
+
+.card-hover-effect:hover {
+  transform: translateY(-10px);
+}
+
+/* Last played card animation */
+.last-played {
+  animation: highlight-play 1s ease-out;
+}
+
+@keyframes highlight-play {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  .mobile-card-size {
+    transform: scale(0.8);
+  }
+  
+  .mobile-card-container {
+    padding-bottom: 70px;
   }
 }
