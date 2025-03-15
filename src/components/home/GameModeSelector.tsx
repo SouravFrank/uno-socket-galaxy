@@ -5,13 +5,14 @@ import { RadioGroup } from "@/components/ui/radio-group";
 import { GameMode } from "@/types/game";
 import GameModeCard from "./GameModeCard";
 import { Loader2 } from "lucide-react";
+import { GameModeInfo } from "@/types/gameModes";
 
 interface GameModeSelectorProps {
   selectedMode: string;
   setSelectedMode: (mode: string) => void;
   onNext: () => void;
   onBack: () => void;
-  gameModes: GameMode[];
+  gameModes: GameModeInfo[];
   isLoading: boolean;
 }
 

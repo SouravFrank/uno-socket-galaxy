@@ -6,8 +6,9 @@ import { motion } from "framer-motion";
 import PlayerInfo from "@/components/home/PlayerInfo";
 import GameModeSelector from "@/components/home/GameModeSelector";
 import { GameOptions } from "@/components/home/GameOptions";
-import { gameModes } from "@/types/game";
+import { GameMode } from "@/types/game";
 import { useToast } from "@/components/ui/use-toast";
+import { GameModeInfo, gameModes } from "@/types/gameModes";
 
 const MIN_NAME_LENGTH = 2;
 const MAX_NAME_LENGTH = 20;
@@ -170,7 +171,7 @@ const Index = () => {
                 setSelectedMode={setSelectedMode}
                 onNext={nextStep}
                 onBack={prevStep}
-                gameModes={gameModes}
+                gameModes={gameModes as GameModeInfo[]}
                 isLoading={isLoading}
               />
             )}
