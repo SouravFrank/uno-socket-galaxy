@@ -72,7 +72,6 @@ export const gameModes: GameMode[] = [
   return difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
 });
 
-// Define helper types for UNO cards and game state
 export type CardColor = "red" | "blue" | "green" | "yellow" | "black";
 export type CardValue = string | number;
 
@@ -102,7 +101,6 @@ export interface GameState {
   winner?: string;
 }
 
-// Functions to create dummy game data
 export function createDummyGameState(gameId: string, hostName: string, gameMode: string): GameState {
   const hostId = "host-" + Math.random().toString(36).substring(2, 9);
   const initialCard = generateRandomCard();
@@ -156,7 +154,6 @@ export function togglePlayerReady(gameState: GameState, playerId: string): GameS
 }
 
 export function startDummyGame(gameState: GameState): GameState {
-  // Start the game if all players are ready and there are at least 2 players
   if (gameState.players.length >= 2 && gameState.players.every(p => p.isReady)) {
     return {
       ...gameState,
@@ -179,18 +176,15 @@ export function playCard(gameState: GameState, playerId: string, cardId: string)
   
   const card = player.cards[cardIndex];
   
-  // Check if card is playable
   if (!isCardPlayable(card, gameState.currentCard)) {
     return gameState;
   }
   
-  // Remove card from player's hand
   const updatedPlayer = {
     ...player,
     cards: [...player.cards.slice(0, cardIndex), ...player.cards.slice(cardIndex + 1)]
   };
   
-  // Check for victory
   if (updatedPlayer.cards.length === 0) {
     return {
       ...gameState,
@@ -201,7 +195,6 @@ export function playCard(gameState: GameState, playerId: string, cardId: string)
     };
   }
   
-  // Handle special cards
   let nextPlayerIndex = getNextPlayerIndex(
     gameState.players.findIndex(p => p.id === playerId),
     gameState.players.length,
@@ -265,15 +258,12 @@ export function drawCard(gameState: GameState, playerId: string): GameState {
     cards: [...player.cards, newCard]
   };
   
-  // Check if the drawn card is playable
   if (isCardPlayable(newCard, gameState.currentCard)) {
-    // Player can choose to play it (we'll let them keep it for now)
     return {
       ...gameState,
       players: gameState.players.map(p => p.id === playerId ? updatedPlayer : p)
     };
   } else {
-    // Move to next player
     const nextPlayerIndex = getNextPlayerIndex(
       gameState.players.findIndex(p => p.id === playerId),
       gameState.players.length,
@@ -289,13 +279,11 @@ export function drawCard(gameState: GameState, playerId: string): GameState {
 }
 
 export function flipDeck(gameState: GameState): GameState {
-  // Only for Flip game mode
   if (gameState.gameMode !== "flip") return gameState;
   
   return {
     ...gameState,
     isFlipped: !gameState.isFlipped,
-    // We could also change all cards in players' hands to the other side here
   };
 }
 

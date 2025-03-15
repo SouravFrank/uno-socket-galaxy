@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import UnoCard from "@/components/UnoCard";
 import GameHints from "@/components/GameHints";
+import ThemeToggle from "@/components/ThemeToggle";
+import LastPlayedMove from "@/components/LastPlayedMove";
 import { useLearningStore } from "@/stores/useLearningStore";
 import LearningModeToggle from "@/components/LearningModeToggle";
 import { Button } from "@/components/ui/button";
@@ -16,10 +18,8 @@ import {
   Users, 
   RefreshCw,
   HandMetal,
-  Plus,
   Volume2,
   VolumeX,
-  ArrowLeftRight,
   ChevronsRight
 } from "lucide-react";
 import {
@@ -56,6 +56,7 @@ const Game = () => {
   const [isUnoPressed, setIsUnoPressed] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [lastPlayedCard, setLastPlayedCard] = useState<{playerId: string, card: UnoCardType} | null>(null);
+  const [pendingDrawCount, setPendingDrawCount] = useState<number>(0);
 
   useEffect(() => {
     if (!gameId) {
@@ -98,6 +99,15 @@ const Game = () => {
     };
   }, [gameId, navigate, toast]);
 
+  // Check if there's a +2 or +4 card played
+  useEffect(() => {
+    if (gameState?.currentCard?.value === "+2") {
+      setPendingDrawCount(2);
+    } else if (gameState?.currentCard?.value === "+4") {
+      setPendingDrawCount(4);
+    }
+  }, [gameState?.currentCard]);
+
   const copyInviteLink = () => {
     const inviteLink = `${window.location.origin}/game/${gameId}`;
     navigator.clipboard.writeText(inviteLink);
@@ -134,6 +144,17 @@ const Game = () => {
 
   const handlePlayCard = (cardId: string) => {
     if (!gameState || !playerId) return;
+    
+    // If there's a pending draw count, player must draw first
+    if (pendingDrawCount > 0 && gameState.currentPlayer === playerId) {
+      toast({
+        title: "Draw Cards First",
+        description: `You need to draw ${pendingDrawCount} cards first`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const player = gameState.players.find(p => p.id === playerId);
     const card = player?.cards.find(c => c.id === cardId);
     
@@ -146,7 +167,7 @@ const Game = () => {
       
       if (card) {
         setLastPlayedCard({
-          playerId: playerId,
+          playerId: "dummy", // Use "dummy" to identify user's move
           card: card
         });
       }
@@ -174,12 +195,28 @@ const Game = () => {
 
   const handleDrawCard = () => {
     if (!gameState || !playerId) return;
-    const updatedState = drawCardAction(gameState, playerId);
-    setGameState(updatedState);
     
-    // Let AI players make moves after a delay
-    if (updatedState.currentPlayer !== playerId) {
+    // Handle pending draw count
+    if (pendingDrawCount > 0) {
+      // Draw multiple cards equal to the pending count
+      let updatedState = {...gameState};
+      for (let i = 0; i < pendingDrawCount; i++) {
+        updatedState = drawCardAction(updatedState, playerId);
+      }
+      setGameState(updatedState);
+      setPendingDrawCount(0);
+      
+      // Move to next player
       setTimeout(simulateAIMove, 1500);
+    } else {
+      // Normal draw
+      const updatedState = drawCardAction(gameState, playerId);
+      setGameState(updatedState);
+      
+      // Let AI players make moves after a delay
+      if (updatedState.currentPlayer !== playerId) {
+        setTimeout(simulateAIMove, 1500);
+      }
     }
   };
 
@@ -263,8 +300,8 @@ const Game = () => {
 
   if (!gameState) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-500/10 via-yellow-500/10 to-green-500/10">
-        <div className="text-center glass-morphism p-8 rounded-xl">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-500/10 via-yellow-500/10 to-green-500/10 dark:from-green-900/20 dark:via-yellow-900/10 dark:to-green-900/20">
+        <div className="text-center glass-morphism p-8 rounded-xl dark:bg-black/30">
           <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-green-500" />
           <h2 className="text-2xl font-bold mb-2">Loading Game...</h2>
         </div>
@@ -280,14 +317,15 @@ const Game = () => {
   
   const myCards = myPlayer?.cards || [];
   const playableCards = myPlayer?.cards.filter(card => 
-    isCardPlayable(card, gameState.currentCard) && gameState.currentPlayer === playerId
+    isCardPlayable(card, gameState.currentCard) && gameState.currentPlayer === playerId && pendingDrawCount === 0
   ) || [];
 
   const canSayUno = myPlayer && myPlayer.cards.length === 2 && gameState.currentPlayer === playerId;
 
   if (gameState.status === "waiting") {
     return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-green-500/10 via-yellow-500/10 to-green-500/10">
+      <div className="min-h-screen w-full bg-gradient-to-br from-green-500/10 via-yellow-500/10 to-green-500/10 dark:from-green-900/20 dark:via-yellow-900/10 dark:to-green-900/20">
+        <ThemeToggle />
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-2xl mx-auto">
             <div className="grass-morphism p-6 shadow-xl">
@@ -323,7 +361,7 @@ const Game = () => {
                       {player.isReady ? (
                         <CheckCircle2 className="w-5 h-5 text-green-500" />
                       ) : (
-                        <span className="text-sm text-gray-500">Not Ready</span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">Not Ready</span>
                       )}
                     </div>
                   ))}
@@ -356,7 +394,7 @@ const Game = () => {
         </div>
 
         <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
-          <DialogContent className="glass-morphism">
+          <DialogContent className="glass-morphism dark:bg-gray-900/80">
             <DialogHeader>
               <DialogTitle>Invite Players</DialogTitle>
               <DialogDescription>
@@ -364,7 +402,7 @@ const Game = () => {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="p-4 bg-white/10 backdrop-blur-sm rounded-lg text-center text-2xl font-mono border border-white/20">
+              <div className="p-4 bg-white/10 backdrop-blur-sm rounded-lg text-center text-2xl font-mono border border-white/20 dark:bg-black/30">
                 {gameId}
               </div>
               <Button onClick={copyInviteLink} className="w-full grass-button">
@@ -380,7 +418,8 @@ const Game = () => {
   if (gameState.status === "finished") {
     const winner = gameState.players.find(p => p.id === gameState.winner);
     return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-green-500/10 via-yellow-500/10 to-green-500/10 flex items-center justify-center">
+      <div className="min-h-screen w-full bg-gradient-to-br from-green-500/10 via-yellow-500/10 to-green-500/10 dark:from-green-900/20 dark:via-yellow-900/10 dark:to-green-900/20 flex items-center justify-center">
+        <ThemeToggle />
         <div className="grass-morphism p-8 shadow-xl text-center">
           <h2 className="text-3xl font-bold mb-4">Game Over!</h2>
           <Crown className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
@@ -396,11 +435,14 @@ const Game = () => {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-green-500/10 via-yellow-500/10 to-green-500/10 pb-24 sm:pb-32">
+    <div className="min-h-screen w-full bg-gradient-to-br from-green-500/10 via-yellow-500/10 to-green-500/10 dark:from-green-900/20 dark:via-yellow-900/10 dark:to-green-900/20 pb-24 sm:pb-32">
+      {/* Theme Toggle */}
+      <ThemeToggle />
+      
       {/* Sound toggle */}
       <button 
         onClick={() => setSoundEnabled(!soundEnabled)}
-        className="fixed top-4 right-4 z-50 p-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20"
+        className="fixed top-4 right-4 z-50 p-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 dark:bg-black/30"
       >
         {soundEnabled ? (
           <Volume2 className="w-5 h-5" />
@@ -411,16 +453,24 @@ const Game = () => {
       
       <LearningModeToggle />
       <GameHints playableCards={playableCards} isVisible={isLearningMode} />
+      <LastPlayedMove 
+        lastPlayedCard={lastPlayedCard} 
+        playerName={lastPlayedCard?.playerId === playerId ? "You" : gameState.players.find(p => p.id === lastPlayedCard?.playerId)?.name || ""}
+        drawCount={pendingDrawCount > 0 && gameState.currentPlayer === playerId ? pendingDrawCount : undefined}
+      />
 
       <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
         {/* Game mode and deck side indicator */}
         <div className="text-center mb-4 flex justify-center gap-2">
-          <span className="px-3 py-1 rounded-full glass-morphism text-xs sm:text-sm">
+          <span className="px-3 py-1 rounded-full glass-morphism text-sm sm:text-base font-medium dark:bg-black/30">
             {gameState.gameMode === "classic" ? "Classic UNO" : 
-             gameState.gameMode === "flip" ? "UNO Flip" : "UNO"}
+             gameState.gameMode === "flip" ? "UNO Flip" : 
+             gameState.gameMode === "doubles" ? "UNO Doubles" :
+             gameState.gameMode === "speed" ? "UNO Speed" :
+             gameState.gameMode === "nomercy" ? "UNO No Mercy" : "UNO"}
           </span>
           {gameState.isFlipped !== undefined && (
-            <span className="px-3 py-1 rounded-full glass-morphism text-xs sm:text-sm">
+            <span className="px-3 py-1 rounded-full glass-morphism text-xs sm:text-sm dark:bg-black/30">
               {gameState.isFlipped ? 'Dark Side' : 'Light Side'}
             </span>
           )}
@@ -429,7 +479,7 @@ const Game = () => {
         {/* Current Turn Indicator */}
         <div className="text-center mb-4">
           <div className={cn(
-            "inline-flex items-center gap-2 px-4 py-2 rounded-full glass-morphism",
+            "inline-flex items-center gap-2 px-4 py-2 rounded-full glass-morphism dark:bg-black/30",
             gameState.currentPlayer === playerId && "neon-border"
           )}>
             <ChevronsRight className={cn(
@@ -456,7 +506,7 @@ const Game = () => {
               <div
                 key={player.id}
                 className={cn(
-                  "text-center p-3 rounded-lg glass-morphism relative",
+                  "text-center p-3 rounded-lg glass-morphism relative dark:bg-black/30",
                   player.id === gameState.currentPlayer && "player-active"
                 )}
               >
@@ -466,13 +516,12 @@ const Game = () => {
                   )}
                   {player.name}
                 </h3>
-                <p className="text-xs text-gray-300 mb-2">{player.cards.length} cards</p>
+                <p className="text-xs text-gray-300 dark:text-gray-400 mb-2">{player.cards.length} cards</p>
                 
                 {/* Last played card indicator */}
                 {lastPlayedCard && lastPlayedCard.playerId === player.id && (
                   <div className="flex justify-center items-center mt-1">
-                    <div className="text-xs px-2 py-1 rounded bg-white/10 flex items-center gap-1">
-                      <ArrowLeftRight className="w-3 h-3" />
+                    <div className="text-xs px-2 py-1 rounded bg-white/10 dark:bg-white/5 flex items-center gap-1">
                       Last played: {lastPlayedCard.card.color} {lastPlayedCard.card.value}
                     </div>
                   </div>
@@ -481,13 +530,20 @@ const Game = () => {
             ))}
         </div>
 
-        {/* Game area - central card */}
-        <div className="flex justify-center items-center gap-4 mb-6">
+        {/* Game area - central card and controls */}
+        <div className="flex justify-center items-center gap-3 mb-6">
           {/* Draw pile */}
-          <div className="relative" onClick={handleDrawCard}>
-            <div className="uno-card-back w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 rounded-xl shadow-lg cursor-pointer border-2 border-gray-100/30 transform rotate-3"></div>
+          <div className="relative" onClick={pendingDrawCount > 0 && gameState.currentPlayer === playerId ? handleDrawCard : undefined}>
+            <div className={cn(
+              "uno-card-back w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 rounded-xl shadow-lg cursor-pointer border-2 border-gray-100/30 transform rotate-3",
+              pendingDrawCount > 0 && gameState.currentPlayer === playerId ? "animate-pulse" : ""
+            )}></div>
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <span className="text-white font-bold text-xs">DRAW</span>
+              <span className="text-white font-bold text-xs">
+                {pendingDrawCount > 0 && gameState.currentPlayer === playerId 
+                  ? `DRAW ${pendingDrawCount}` 
+                  : "DRAW"}
+              </span>
             </div>
           </div>
           
@@ -506,10 +562,10 @@ const Game = () => {
               "rounded-full h-16 w-16 flex items-center justify-center font-bold text-lg",
               canSayUno 
                 ? "bg-red-500 hover:bg-red-600 shadow-lg" 
-                : "bg-gray-500/50 cursor-not-allowed"
+                : "bg-gray-500/50 cursor-not-allowed dark:bg-gray-700/50"
             )}
           >
-            <HandMetal className="w-8 h-8" />
+            UNO
           </Button>
         </div>
 
@@ -517,20 +573,11 @@ const Game = () => {
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-black/30 backdrop-blur-sm border-t border-white/10">
           <div className="container mx-auto">
             <div className="flex justify-center gap-2 mb-3">
-              <Button
-                onClick={handleDrawCard}
-                variant="outline"
-                className="glass-morphism text-white border-white/20"
-                disabled={gameState.currentPlayer !== playerId}
-              >
-                <Plus className="w-4 h-4 mr-1" /> Draw Card
-              </Button>
-              
               {gameState.gameMode === "flip" && (
                 <Button
                   onClick={handleFlipDeck}
                   variant="outline"
-                  className="glass-morphism text-white border-white/20"
+                  className="glass-morphism text-white border-white/20 dark:bg-black/30"
                   disabled={gameState.currentPlayer !== playerId}
                 >
                   <RefreshCw className="w-4 h-4 mr-1" /> Flip Deck
@@ -538,7 +585,7 @@ const Game = () => {
               )}
             </div>
             <div className={cn(
-              "flex justify-center overflow-x-auto pb-4 gap-[-10px] sm:gap-[-15px]",
+              "flex justify-center overflow-x-auto pb-4 gap-[-10px] sm:gap-[-15px] hide-scrollbar",
               isMobile ? "mobile-card-container" : ""
             )}>
               {myCards.map((card, index) => (

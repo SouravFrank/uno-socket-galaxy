@@ -16,7 +16,7 @@ const GameHints = ({ playableCards, isVisible }: GameHintsProps) => {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.9 }}
-          className="fixed left-4 top-20 max-w-xs glass-morphism z-50 p-4 rounded-lg"
+          className="fixed left-4 top-20 max-w-xs glass-morphism z-50 p-4 rounded-lg dark:bg-black/30 dark:border-white/10"
         >
           <div className="flex items-center gap-2 mb-3">
             <LightbulbIcon className="w-5 h-5 text-yellow-400" />
@@ -31,15 +31,15 @@ const GameHints = ({ playableCards, isVisible }: GameHintsProps) => {
                   animate={{ 
                     x: 0, 
                     opacity: 1,
-                    boxShadow: ["0px 0px 0px rgba(255, 255, 255, 0)", "0px 0px 8px rgba(255, 255, 255, 0.5)", "0px 0px 0px rgba(255, 255, 255, 0)"],
+                    boxShadow: ["0px 0px 0px rgba(255, 255, 255, 0)", "0px 0px 12px rgba(255, 255, 255, 0.7)", "0px 0px 0px rgba(255, 255, 255, 0)"],
                   }}
                   transition={{
                     boxShadow: {
                       repeat: Infinity,
-                      duration: 2,
+                      duration: 1.5,
                     }
                   }}
-                  className="text-sm bg-white/10 backdrop-blur-sm rounded-md p-2 border border-white/10"
+                  className="text-sm bg-white/10 backdrop-blur-sm rounded-md p-2 border border-white/20 dark:bg-black/40 dark:border-white/10 neon-border"
                 >
                   <div className="flex items-center gap-2">
                     <div 
@@ -59,7 +59,7 @@ const GameHints = ({ playableCards, isVisible }: GameHintsProps) => {
               <motion.p 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="text-sm bg-white/10 backdrop-blur-sm rounded-md p-2 border border-white/10"
+                className="text-sm bg-white/10 backdrop-blur-sm rounded-md p-2 border border-white/10 dark:bg-black/40"
               >
                 No playable cards - draw a card!
               </motion.p>

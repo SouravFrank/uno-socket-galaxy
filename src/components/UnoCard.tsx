@@ -25,10 +25,10 @@ const UnoCard = ({
   className,
 }: UnoCardProps) => {
   const colorClasses = {
-    red: "bg-gradient-to-br from-red-500 to-red-600 border-red-400",
-    blue: "bg-gradient-to-br from-blue-500 to-blue-600 border-blue-400",
-    green: "bg-gradient-to-br from-green-500 to-green-600 border-green-400",
-    yellow: "bg-gradient-to-br from-yellow-400 to-yellow-500 border-yellow-300",
+    red: "bg-gradient-to-br from-red-500 to-red-600 border-red-400 dark:from-red-600 dark:to-red-800",
+    blue: "bg-gradient-to-br from-blue-500 to-blue-600 border-blue-400 dark:from-blue-600 dark:to-blue-800",
+    green: "bg-gradient-to-br from-green-500 to-green-600 border-green-400 dark:from-green-600 dark:to-green-800",
+    yellow: "bg-gradient-to-br from-yellow-400 to-yellow-500 border-yellow-300 dark:from-yellow-500 dark:to-yellow-700",
     black: "bg-gradient-to-br from-gray-800 to-black border-gray-700",
   };
 
@@ -36,15 +36,25 @@ const UnoCard = ({
   const getCardIcon = () => {
     switch(value) {
       case "Skip":
-        return <SkipForward className="text-white/90 w-8 h-8" />;
+        return <SkipForward className="text-white/90 w-6 h-6 md:w-8 md:h-8" />;
       case "Reverse":
-        return <RotateCcw className="text-white/90 w-8 h-8" />;
+        return <RotateCcw className="text-white/90 w-6 h-6 md:w-8 md:h-8" />;
       case "+2":
-        return <Plus className="text-white/90 w-8 h-8" />;
+        return (
+          <div className="relative">
+            <Plus className="text-white/90 w-6 h-6 md:w-8 md:h-8" />
+            <span className="absolute -top-1 -right-1 text-sm font-bold text-white bg-black/30 rounded-full w-4 h-4 flex items-center justify-center">2</span>
+          </div>
+        );
       case "Wild":
-        return <Shuffle className="text-white/90 w-8 h-8" />;
+        return <Shuffle className="text-white/90 w-6 h-6 md:w-8 md:h-8" />;
       case "+4":
-        return <Plus className="text-white/90 w-8 h-8" />;
+        return (
+          <div className="relative">
+            <Plus className="text-white/90 w-6 h-6 md:w-8 md:h-8" />
+            <span className="absolute -top-1 -right-1 text-sm font-bold text-white bg-black/30 rounded-full w-4 h-4 flex items-center justify-center">4</span>
+          </div>
+        );
       default:
         return null;
     }
@@ -67,16 +77,20 @@ const UnoCard = ({
           "relative w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 rounded-xl shadow-lg cursor-pointer transition-all duration-300",
           colorClasses[color],
           isPlayable 
-            ? "hover:shadow-xl hover:shadow-white/20 dark:hover:shadow-black/40 ring-2 ring-white/50" 
+            ? "hover:shadow-xl hover:shadow-white/20 dark:hover:shadow-black/40 dark:ring-2 dark:ring-white/30" 
             : "opacity-90",
           "border-2 backdrop-blur-sm",
           className
         )}
         onClick={isPlayable ? onClick : undefined}
+        style={{ 
+          zIndex: isPlayable ? 10 : 1, 
+          boxShadow: isPlayable ? "0 0 15px rgba(255, 255, 255, 0.5)" : "" 
+        }}
       >
         {/* Glass effect overlay */}
         <div className="absolute inset-0 rounded-xl overflow-hidden">
-          <div className="absolute inset-0 bg-white/10">
+          <div className="absolute inset-0 bg-white/10 dark:bg-white/5">
             <div className="w-full h-full bg-gradient-to-br from-white/5 to-transparent" />
           </div>
         </div>
@@ -97,17 +111,17 @@ const UnoCard = ({
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="relative">
             {/* Top-left mini value */}
-            <span className="absolute -top-10 -left-8 text-xs font-bold text-white/90">
+            <span className="absolute -top-8 -left-6 text-xs font-bold text-white/90">
               {getCardValueText()}
             </span>
             
             {/* Main value or icon */}
-            <div className="text-3xl font-bold text-white drop-shadow-lg transform -rotate-12">
+            <div className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg transform -rotate-12">
               {getCardIcon() || getCardValueText()}
             </div>
             
             {/* Bottom-right mini value */}
-            <span className="absolute -bottom-10 -right-8 text-xs font-bold text-white/90 rotate-180">
+            <span className="absolute -bottom-8 -right-6 text-xs font-bold text-white/90 rotate-180">
               {getCardValueText()}
             </span>
           </div>
@@ -128,7 +142,7 @@ const UnoCard = ({
       
       {/* Glow effect for playable cards */}
       {isPlayable && (
-        <div className="absolute inset-0 bg-white/20 rounded-xl filter blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-[-1]" />
+        <div className="absolute inset-0 bg-white/30 dark:bg-white/20 rounded-xl filter blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-[-1] animate-pulse" />
       )}
     </div>
   );
