@@ -1,27 +1,24 @@
 
 import { useEffect, useState } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
-import UnoCard from "@/components/UnoCard";
-import GameHints from "@/components/GameHints";
 import ThemeToggle from "@/components/ThemeToggle";
 import LastPlayedMove from "@/components/LastPlayedMove";
 import { useLearningStore } from "@/stores/useLearningStore";
 import LearningModeToggle from "@/components/LearningModeToggle";
+import GameHints from "@/components/GameHints";
+import GameHeader from "@/components/GameHeader";
+import GameControls from "@/components/GameControls";
+import PlayerHandArea from "@/components/PlayerHandArea";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
-import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Share2,
   Crown,
   CheckCircle2,
   Users,
   RefreshCw,
-  HandMetal,
   Volume2,
   VolumeX,
-  ChevronsRight
 } from "lucide-react";
 import {
   Dialog,
@@ -32,7 +29,6 @@ import {
 } from "@/components/ui/dialog";
 import {
   GameState,
-  Player,
   UnoCard as UnoCardType,
   createDummyGameState,
   addDummyPlayer,
@@ -44,28 +40,37 @@ import {
   isCardPlayable
 } from "@/types/game";
 
+// Helper function to create a move history item
+const createMoveHistoryItem = (playerId: string, playerName: string, card: UnoCardType) => {
+  return {
+    playerId,
+    playerName,
+    card,
+    timestamp: Date.now()
+  };
+};
+
 const Game = () => {
   const { gameId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { isLearningMode } = useLearningStore();
-  const isMobile = useIsMobile();
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [isUnoPressed, setIsUnoPressed] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [lastPlayedCard, setLastPlayedCard] = useState<{ playerId: string, card: UnoCardType } | null>(null);
+  const [moveHistory, setMoveHistory] = useState<Array<{
+    playerId: string;
+    playerName: string;
+    card: UnoCardType;
+    timestamp: number;
+  }>>([]);
   const [pendingDrawCount, setPendingDrawCount] = useState<number>(0);
+  const [directionChanged, setDirectionChanged] = useState(false);
 
   useEffect(() => {
     if (!gameId) {
-      toast({
-        title: "Error",
-        description: "Game ID is required",
-        variant: "destructive",
-      });
       navigate('/');
       return;
     }
@@ -98,7 +103,7 @@ const Game = () => {
       clearTimeout(timeout1);
       clearTimeout(timeout2);
     };
-  }, [gameId, navigate, toast]);
+  }, [gameId, navigate, location.state]);
 
   // Check if there's a +2 or +4 card played
   useEffect(() => {
@@ -108,14 +113,21 @@ const Game = () => {
       setPendingDrawCount(4);
     }
   }, [gameState?.currentCard]);
+  
+  // Detect direction changes
+  useEffect(() => {
+    if (gameState?.lastAction === "reverse") {
+      setDirectionChanged(true);
+      const timeout = setTimeout(() => {
+        setDirectionChanged(false);
+      }, 3000);
+      return () => clearTimeout(timeout);
+    }
+  }, [gameState?.lastAction, gameState?.direction]);
 
   const copyInviteLink = () => {
     const inviteLink = `${window.location.origin}/game/${gameId}`;
     navigator.clipboard.writeText(inviteLink);
-    toast({
-      title: "Invite Link Copied",
-      description: "Share this link with your friends to join the game!",
-    });
   };
 
   const toggleReady = () => {
@@ -148,11 +160,6 @@ const Game = () => {
 
     // If there's a pending draw count, player must draw first
     if (pendingDrawCount > 0 && gameState.currentPlayer === playerId) {
-      toast({
-        title: "Draw Cards First",
-        description: `You need to draw ${pendingDrawCount} cards first`,
-        variant: "destructive",
-      });
       return;
     }
 
@@ -166,23 +173,25 @@ const Game = () => {
       const updatedState = playCardAction(gameState, playerId, cardId);
       setGameState(updatedState);
 
+      // Add to move history
       if (card) {
-        setLastPlayedCard({
-          playerId: "dummy", // Use "dummy" to identify user's move
-          card: card
-        });
+        const newMove = createMoveHistoryItem(
+          playerId,
+          player.name,
+          card
+        );
+        
+        setMoveHistory(prev => [...prev, newMove]);
+        
+        // Check for direction change
+        if (card.value === "reverse") {
+          setDirectionChanged(true);
+          setTimeout(() => setDirectionChanged(false), 3000);
+        }
       }
 
       if (shouldPressUno && !isUnoPressed) {
-        // Player forgot to press UNO
-        setTimeout(() => {
-          toast({
-            title: "Forgot to say UNO!",
-            description: "You'll have to draw two cards as penalty.",
-            variant: "destructive",
-          });
-          // Add penalty in real implementation
-        }, 1000);
+        // Player forgot to press UNO - would add penalty in real implementation
       }
 
       setIsUnoPressed(false);
@@ -223,10 +232,6 @@ const Game = () => {
 
   const handleUnoButton = () => {
     setIsUnoPressed(true);
-    toast({
-      title: "UNO!",
-      description: "You said UNO!",
-    });
   };
 
   const handleFlipDeck = () => {
@@ -251,27 +256,29 @@ const Game = () => {
         const randomCard = playableCards[Math.floor(Math.random() * playableCards.length)];
         const newState = playCardAction(prevState, currentPlayer.id, randomCard.id);
 
-        // Set the last played card
-        setLastPlayedCard({
-          playerId: currentPlayer.id,
-          card: randomCard
-        });
+        // Add to move history
+        const newMove = createMoveHistoryItem(
+          currentPlayer.id,
+          currentPlayer.name,
+          randomCard
+        );
+        
+        setMoveHistory(prev => [...prev, newMove]);
+        
+        // Check for direction change
+        if (randomCard.value === "reverse") {
+          setDirectionChanged(true);
+          setTimeout(() => setDirectionChanged(false), 3000);
+        }
 
         // Check if AI should say UNO
         if (currentPlayer.cards.length === 2) {
           // 50% chance AI forgets to say UNO
           const saysUno = Math.random() > 0.5;
           if (saysUno) {
-            toast({
-              title: `${currentPlayer.name} says UNO!`,
-            });
+            // AI says UNO
           } else {
-            toast({
-              title: `${currentPlayer.name} forgot to say UNO!`,
-              description: "They'll draw two cards as penalty.",
-              variant: "destructive",
-            });
-            // Implement penalty in real implementation
+            // AI forgot to say UNO - would implement penalty in real game
           }
         }
 
@@ -285,10 +292,6 @@ const Game = () => {
         // Draw a card
         const newState = drawCardAction(prevState, currentPlayer.id);
 
-        toast({
-          title: `${currentPlayer.name} draws a card`,
-        });
-
         // Schedule next AI move if it's still AI's turn
         if (newState.currentPlayer !== playerId && newState.status === "playing") {
           setTimeout(simulateAIMove, 1500);
@@ -299,6 +302,7 @@ const Game = () => {
     });
   };
 
+  // Render game lobby while waiting for players
   if (!gameState) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-500/10 via-yellow-500/10 to-green-500/10 dark:from-green-900/20 dark:via-yellow-900/10 dark:to-green-900/20">
@@ -323,171 +327,29 @@ const Game = () => {
 
   const canSayUno = myPlayer && myPlayer.cards.length === 2 && gameState.currentPlayer === playerId;
 
+  // Render waiting/lobby screen
   if (gameState.status === "waiting") {
-    return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-green-500/10 via-yellow-500/10 to-green-500/10 dark:from-green-900/20 dark:via-yellow-900/10 dark:to-green-900/20">
-        <ThemeToggle />
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-2xl mx-auto">
-            <div className="grass-morphism p-6 shadow-xl">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold">Game Lobby</h2>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowInviteDialog(true)}
-                  className="flex items-center gap-2 grass-button"
-                >
-                  <Share2 className="w-4 h-4" />
-                  Invite Players
-                </Button>
-              </div>
-
-              <div className="space-y-4 mb-6">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Players ({gameState.players.length}/4)
-                </h3>
-                <div className="divide-y dark:divide-gray-700">
-                  {gameState.players.map((player) => (
-                    <div
-                      key={player.id}
-                      className="py-3 flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-2">
-                        {player.isHost && (
-                          <Crown className="w-4 h-4 text-yellow-500" />
-                        )}
-                        <span>{player.name}</span>
-                      </div>
-                      {player.isReady ? (
-                        <CheckCircle2 className="w-5 h-5 text-green-500" />
-                      ) : (
-                        <span className="text-sm text-gray-500 dark:text-gray-400">Not Ready</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <Button
-                  onClick={toggleReady}
-                  variant={isReady ? "outline" : "default"}
-                  className={cn(
-                    "flex-1 grass-button",
-                    isReady && "bg-green-500/70 hover:bg-green-600/70"
-                  )}
-                >
-                  {isReady ? "Ready!" : "Click when ready"}
-                </Button>
-                {isHost && (
-                  <Button
-                    onClick={startGame}
-                    disabled={!canStartGame}
-                    className="flex-1 grass-button"
-                  >
-                    Start Game
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
-          <DialogContent className="glass-morphism dark:bg-gray-900/80">
-            <DialogHeader>
-              <DialogTitle>Invite Players</DialogTitle>
-              <DialogDescription>
-                Share this game code with your friends:
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="p-4 bg-white/10 backdrop-blur-sm rounded-lg text-center text-2xl font-mono border border-white/20 dark:bg-black/30">
-                {gameId}
-              </div>
-              <Button onClick={copyInviteLink} className="w-full grass-button">
-                Copy Invite Link
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-    );
+    return <GameLobby 
+      gameState={gameState} 
+      playerId={playerId} 
+      isHost={isHost} 
+      isReady={isReady}
+      canStartGame={canStartGame} 
+      showInviteDialog={showInviteDialog}
+      setShowInviteDialog={setShowInviteDialog}
+      toggleReady={toggleReady}
+      startGame={startGame}
+      copyInviteLink={copyInviteLink}
+      gameId={gameId}
+    />;
   }
 
+  // Render game over screen
   if (gameState.status === "finished") {
-    const winner = gameState.players.find(p => p.id === gameState.winner);
-    return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-green-500/10 via-yellow-500/10 to-green-500/10 dark:from-green-900/20 dark:via-yellow-900/10 dark:to-green-900/20 flex items-center justify-center">
-        <ThemeToggle />
-        <div className="grass-morphism p-8 shadow-xl text-center">
-          <h2 className="text-3xl font-bold mb-4">Game Over!</h2>
-          <Crown className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-          <p className="text-xl mb-6">
-            {winner?.name || "Someone"} has won the game!
-          </p>
-          <Button onClick={() => navigate('/')} className="grass-button">
-            Back to Home
-          </Button>
-        </div>
-      </div>
-    );
+    return <GameOver gameState={gameState} navigate={navigate} />;
   }
 
-
-
-  const UnoDrawCard = ({ pendingDrawCount, gameState, playerId, handleDrawCard }) => {
-    return (
-      <div className="group relative py-2 px-1" onClick={handleDrawCard}>
-        <motion.div
-          whileHover={{ y: -10, scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className={cn(
-            "relative w-14 h-22 sm:w-16 sm:h-24 md:w-20 md:h-30 rounded-xl",
-            "bg-[repeating-linear-gradient(45deg,#ff0000,#ff0000_10px,#ffa500_10px,#ffa500_20px,#ffff00_20px,#ffff00_30px)]",
-            "border-2 border-white/20 backdrop-blur-sm transition-all duration-300",
-            pendingDrawCount > 0 && gameState.currentPlayer === playerId ? "animate-pulse" : "",
-            "cursor-pointer"
-          )}
-          style={{
-            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1), 0 0 5px rgba(255, 255, 255, 0.7)"
-          }}
-        >
-          {/* Gradient overlay to soften the stripes */}
-          <div className="absolute inset-0 rounded-lg overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
-          </div>
-
-          {/* UNO text at the top, bold */}
-          <div className="absolute top-1 left-0 w-full text-center">
-            <span
-              className="text-[8px] sm:text-[10px] md:text-[12px] font-bold text-white tracking-widest"
-              style={{ textShadow: '0 0 3px white' }}
-            >
-              UNO
-            </span>
-          </div>
-
-          {/* Draw text centered */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
-            <span
-              className="text-white font-bold text-xs sm:text-sm md:text-base"
-              style={{ textShadow: '0 0 3px rgba(255, 255, 255, 0.7)' }}
-            >
-              {pendingDrawCount > 0 && gameState.currentPlayer === playerId
-                ? `Draw Card +${pendingDrawCount}`
-                : "Draw Card"}
-            </span>
-          </div>
-        </motion.div>
-
-        {/* Glow effect on hover */}
-        <div className="absolute inset-0 bg-white/30 dark:bg-white/20 rounded-xl filter blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-[-1]" />
-      </div>
-    );
-  };
-
+  // Render active game
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-green-500/10 via-yellow-500/10 to-green-500/10 dark:from-green-900/20 dark:via-yellow-900/10 dark:to-green-900/20 pb-24 sm:pb-32">
       {/* Theme Toggle */}
@@ -496,7 +358,7 @@ const Game = () => {
       {/* Sound toggle */}
       <button
         onClick={() => setSoundEnabled(!soundEnabled)}
-        className="fixed top-4 right-4 z-50 p-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 dark:bg-black/30"
+        className="fixed top-4 right-4 z-50 p-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 dark:bg-black/30 cursor-pointer"
       >
         {soundEnabled ? (
           <Volume2 className="w-5 h-5" />
@@ -506,164 +368,230 @@ const Game = () => {
       </button>
 
       <LearningModeToggle />
-      <GameHints playableCards={playableCards} isVisible={isLearningMode} />
+      <GameHints 
+        playableCards={playableCards} 
+        isVisible={isLearningMode} 
+      />
       <LastPlayedMove
-        lastPlayedCard={lastPlayedCard}
-        playerName={lastPlayedCard?.playerId === playerId ? "You" : gameState.players.find(p => p.id === lastPlayedCard?.playerId)?.name || ""}
+        moveHistory={moveHistory}
         drawCount={pendingDrawCount > 0 && gameState.currentPlayer === playerId ? pendingDrawCount : undefined}
+        direction={gameState.direction}
+        directionChanged={directionChanged}
       />
 
       <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
-        {/* Game mode and deck side indicator */}
-        <div className="text-center mb-4 flex justify-center gap-2">
-          <span className="px-3 py-1 rounded-full glass-morphism text-sm sm:text-base font-medium dark:bg-black/30">
-            {gameState.gameMode === "classic" ? "Classic UNO" :
-              gameState.gameMode === "flip" ? "UNO Flip" :
-                gameState.gameMode === "doubles" ? "UNO Doubles" :
-                  gameState.gameMode === "speed" ? "UNO Speed" :
-                    gameState.gameMode === "nomercy" ? "UNO No Mercy" : "UNO"}
-          </span>
-          {gameState.isFlipped !== undefined && (
-            <span className="px-3 py-1 rounded-full glass-morphism text-xs sm:text-sm dark:bg-black/30">
-              {gameState.isFlipped ? 'Dark Side' : 'Light Side'}
-            </span>
-          )}
-        </div>
-
-        {/* Current Turn Indicator */}
-        <div className="text-center mb-4">
-          <div className={cn(
-            "inline-flex items-center gap-2 px-4 py-2 rounded-full glass-morphism dark:bg-black/30",
-            gameState.currentPlayer === playerId && "neon-border"
-          )}>
-            <ChevronsRight className={cn(
-              "w-4 h-4",
-              gameState.currentPlayer === playerId ? "text-green-400" : "text-gray-400"
-            )} />
-            <span className="text-sm font-medium">
-              {gameState.currentPlayer === playerId
-                ? "Your Turn"
-                : `${gameState.players.find(p => p.id === gameState.currentPlayer)?.name}'s Turn`}
-            </span>
-          </div>
-        </div>
+        {/* Game Header */}
+        <GameHeader
+          gameMode={gameState.gameMode}
+          isFlipped={gameState.isFlipped}
+          currentPlayer={gameState.currentPlayer}
+          currentPlayerName={gameState.players.find(p => p.id === gameState.currentPlayer)?.name || ""}
+          isCurrentPlayerMe={gameState.currentPlayer === playerId}
+          direction={gameState.direction}
+          directionChanged={directionChanged}
+        />
 
         {/* Opponents */}
-        <div className={cn(
-          "grid gap-3 mb-6",
-          gameState.players.length <= 2 ? "grid-cols-1" :
-            gameState.players.length <= 3 ? "grid-cols-2" : "grid-cols-3"
-        )}>
-          {gameState.players
-            .filter((p) => p.id !== playerId)
-            .map((player) => (
-              <div
-                key={player.id}
-                className={cn(
-                  "text-center p-3 rounded-lg glass-morphism relative dark:bg-black/30",
-                  player.id === gameState.currentPlayer && "player-active"
-                )}
-              >
-                <h3 className="font-medium mb-1 flex items-center justify-center gap-1">
-                  {player.id === gameState.currentPlayer && (
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                  )}
-                  {player.name}
-                </h3>
-                <p className="text-xs text-gray-300 dark:text-gray-400 mb-2">{player.cards.length} cards</p>
+        <OpponentsList 
+          players={gameState.players.filter(p => p.id !== playerId)}
+          currentPlayerId={gameState.currentPlayer}
+          moveHistory={moveHistory}
+        />
 
-                {/* Last played card indicator */}
-                {lastPlayedCard && lastPlayedCard.playerId === player.id && (
-                  <div className="flex justify-center items-center mt-1">
-                    <div className="text-xs px-2 py-1 rounded bg-white/10 dark:bg-white/5 flex items-center gap-1">
-                      Last played: {lastPlayedCard.card.color} {lastPlayedCard.card.value}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-        </div>
-
-        {/* Game area - central card and controls */}
-        <div className="flex justify-center items-center gap-3 mb-6">
-          {/* Draw pile */}
-          <UnoDrawCard {...{ pendingDrawCount, gameState, playerId, handleDrawCard }} />
-
-          {/* Current card */}
-          <UnoCard
-            color={gameState.currentCard.color}
-            value={gameState.currentCard.value}
-            className="last-played"
-          />
-
-          {/* UNO button */}
-          <Button
-            onClick={handleUnoButton}
-            disabled={!canSayUno}
-            className={cn(
-              "rounded-full h-16 w-46 flex items-center justify-center font-bold text-lg",
-              canSayUno
-                ? "bg-red-500 hover:bg-red-600 shadow-lg"
-                : "bg-gray-500/50 cursor-not-allowed dark:bg-gray-700/50"
-            )}
-          >
-            <HandMetal className={cn(
-              "rounded-full h-16 w-46 flex items-center justify-center font-bold text-lg",
-              canSayUno
-                ? "bg-red-500 hover:bg-red-600 shadow-lg"
-                : "bg-gray-500/50 cursor-not-allowed dark:bg-gray-700/50"
-            )} />
-            <span className="text-xs font-semibold text-white -top-2 -right-2 px-1">
-              UNO
-            </span>
-          </Button>
-        </div>
+        {/* Game Controls - central card and draw deck */}
+        <GameControls
+          currentCard={gameState.currentCard}
+          isFlipMode={gameState.gameMode === "flip"}
+          onDrawCard={handleDrawCard}
+          onFlipDeck={handleFlipDeck}
+          isCurrentPlayer={gameState.currentPlayer === playerId}
+          pendingDrawCount={pendingDrawCount}
+        />
 
         {/* Player hand */}
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-black/30 backdrop-blur-sm border-t border-white/10">
-          <div className="container mx-auto">
-            <div className="flex justify-center gap-2 mb-3">
-              {gameState.gameMode === "flip" && (
+        <PlayerHandArea
+          cards={myCards}
+          playableCards={playableCards}
+          isCurrentPlayer={gameState.currentPlayer === playerId}
+          onPlayCard={handlePlayCard}
+          onUnoButtonClick={handleUnoButton}
+          canSayUno={canSayUno}
+          isLearningMode={isLearningMode}
+        />
+      </div>
+    </div>
+  );
+};
+
+// Separate component for the waiting/lobby screen
+const GameLobby = ({ 
+  gameState, 
+  playerId, 
+  isHost, 
+  isReady, 
+  canStartGame,
+  showInviteDialog,
+  setShowInviteDialog,
+  toggleReady,
+  startGame,
+  copyInviteLink,
+  gameId
+}) => {
+  return (
+    <div className="min-h-screen w-full bg-gradient-to-br from-green-500/10 via-yellow-500/10 to-green-500/10 dark:from-green-900/20 dark:via-yellow-900/10 dark:to-green-900/20">
+      <ThemeToggle />
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-2xl mx-auto">
+          <div className="grass-morphism p-6 shadow-xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">Game Lobby</h2>
+              <Button
+                variant="outline"
+                onClick={() => setShowInviteDialog(true)}
+                className="flex items-center gap-2 grass-button"
+              >
+                <Share2 className="w-4 h-4" />
+                Invite Players
+              </Button>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Players ({gameState.players.length}/4)
+              </h3>
+              <div className="divide-y dark:divide-gray-700">
+                {gameState.players.map((player) => (
+                  <div
+                    key={player.id}
+                    className="py-3 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2">
+                      {player.isHost && (
+                        <Crown className="w-4 h-4 text-yellow-500" />
+                      )}
+                      <span>{player.name}</span>
+                    </div>
+                    {player.isReady ? (
+                      <CheckCircle2 className="w-5 h-5 text-green-500" />
+                    ) : (
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Not Ready</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                onClick={toggleReady}
+                variant={isReady ? "outline" : "default"}
+                className={`flex-1 grass-button ${
+                  isReady && "bg-green-500/70 hover:bg-green-600/70"
+                }`}
+              >
+                {isReady ? "Ready!" : "Click when ready"}
+              </Button>
+              {isHost && (
                 <Button
-                  onClick={handleFlipDeck}
-                  variant="outline"
-                  className="glass-morphism text-white border-white/20 dark:bg-black/30"
-                  disabled={gameState.currentPlayer !== playerId}
+                  onClick={startGame}
+                  disabled={!canStartGame}
+                  className="flex-1 grass-button"
                 >
-                  <RefreshCw className="w-4 h-4 mr-1" /> Flip Deck
+                  Start Game
                 </Button>
               )}
-            </div>
-            <div className={cn(
-              "flex justify-center overflow-x-auto pb-4 gap-[-10px] sm:gap-[-15px] hide-scrollbar",
-              isMobile ? "mobile-card-container" : ""
-            )}>
-              {myCards.map((card, index) => (
-                <div
-                  key={card.id}
-                  className={cn(
-                    "transform transition-transform duration-300 hover:z-10",
-                    isMobile ? "mobile-card-size" : "",
-                    playableCards.some((c) => c.id === card.id) ? "hover:scale-110" : ""
-                  )}
-                  style={{
-                    marginLeft: index > 0 ? "-2rem" : "0",
-                    zIndex: index
-                  }}
-                >
-                  <UnoCard
-                    key={card.id}
-                    color={card.color}
-                    value={card.value}
-                    isPlayable={playableCards.some((c) => c.id === card.id) && gameState.currentPlayer === playerId}
-                    onClick={() => handlePlayCard(card.id)}
-                  />
-                </div>
-              ))}
             </div>
           </div>
         </div>
       </div>
+
+      <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+        <DialogContent className="glass-morphism dark:bg-gray-900/80">
+          <DialogHeader>
+            <DialogTitle>Invite Players</DialogTitle>
+            <DialogDescription>
+              Share this game code with your friends:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-4 bg-white/10 backdrop-blur-sm rounded-lg text-center text-2xl font-mono border border-white/20 dark:bg-black/30">
+              {gameId}
+            </div>
+            <Button onClick={copyInviteLink} className="w-full grass-button">
+              Copy Invite Link
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+// Separate component for the game over screen
+const GameOver = ({ gameState, navigate }) => {
+  const winner = gameState.players.find(p => p.id === gameState.winner);
+  
+  return (
+    <div className="min-h-screen w-full bg-gradient-to-br from-green-500/10 via-yellow-500/10 to-green-500/10 dark:from-green-900/20 dark:via-yellow-900/10 dark:to-green-900/20 flex items-center justify-center">
+      <ThemeToggle />
+      <div className="grass-morphism p-8 shadow-xl text-center">
+        <h2 className="text-3xl font-bold mb-4">Game Over!</h2>
+        <Crown className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+        <p className="text-xl mb-6">
+          {winner?.name || "Someone"} has won the game!
+        </p>
+        <Button onClick={() => navigate('/')} className="grass-button">
+          Back to Home
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+// Separate component for opponents list
+const OpponentsList = ({ players, currentPlayerId, moveHistory }) => {
+  return (
+    <div className={`grid gap-3 mb-6 ${
+      players.length <= 1 ? "grid-cols-1" :
+      players.length <= 2 ? "grid-cols-2" : "grid-cols-3"
+    }`}>
+      {players.map((player) => {
+        // Find the last move by this player
+        const lastMove = moveHistory
+          .filter(move => move.playerId === player.id)
+          .sort((a, b) => b.timestamp - a.timestamp)[0];
+          
+        const isUno = player.cards.length === 1;
+        
+        return (
+          <div
+            key={player.id}
+            className={`
+              text-center p-3 rounded-lg glass-morphism relative dark:bg-black/30
+              ${player.id === currentPlayerId && "player-active"}
+              ${isUno ? "uno-called" : ""}
+            `}
+          >
+            <h3 className="font-medium mb-1 flex items-center justify-center gap-1">
+              {player.id === currentPlayerId && (
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+              )}
+              {player.name}
+            </h3>
+            <p className="text-xs text-gray-300 dark:text-gray-400 mb-2">{player.cards.length} cards</p>
+
+            {/* Last played card indicator */}
+            {lastMove && (
+              <div className="flex justify-center items-center mt-1">
+                <div className="text-xs px-2 py-1 rounded bg-white/10 dark:bg-white/5 flex items-center gap-1">
+                  Last played: {lastMove.card.color} {lastMove.card.value}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 };

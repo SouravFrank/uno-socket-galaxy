@@ -86,47 +86,6 @@
   display: none;
 }
 
-/* Card styles */
-.uno-card-back {
-  background: linear-gradient(45deg, 
-    #ff0000 0%, 
-    #ff0000 10%, 
-    #ff3333 10%, 
-    #ff3333 20%,
-    #ff0000 20%,
-    #ff0000 30%,
-    #ff3333 30%,
-    #ff3333 40%,
-    #ff0000 40%,
-    #ff0000 50%,
-    #ff3333 50%,
-    #ff3333 60%,
-    #ff0000 60%,
-    #ff0000 70%,
-    #ff3333 70%,
-    #ff3333 80%,
-    #ff0000 80%,
-    #ff0000 90%,
-    #ff3333 90%,
-    #ff3333 100%
-  );
-  position: relative;
-  overflow: hidden;
-}
-
-.uno-card-back::before {
-  content: "UNO";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: white;
-  text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
-  letter-spacing: 3px;
-}
-
 /* Glassmorphism */
 .glass-morphism {
   backdrop-filter: blur(12px);
@@ -172,6 +131,7 @@
   font-weight: 600;
   box-shadow: 0 4px 12px rgba(134, 251, 120, 0.2);
   transition: all 0.3s ease;
+  cursor: pointer;
 }
 
 .dark .grass-button {
@@ -202,6 +162,41 @@
   animation: pulse-border 2s infinite;
 }
 
+/* UNO notification */
+.uno-called {
+  position: relative;
+}
+
+.uno-called::after {
+  content: "UNO!";
+  position: absolute;
+  top: -20px;
+  right: -10px;
+  background: linear-gradient(90deg, #ff416c, #ff4b2b);
+  color: white;
+  font-weight: bold;
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  box-shadow: 0 0 10px rgba(255, 75, 43, 0.7);
+  animation: pulse-uno 2s infinite;
+}
+
+@keyframes pulse-uno {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 @keyframes pulse-border {
   0% {
     box-shadow: 0 0 0 0 rgba(134, 251, 120, 0.7);
@@ -214,22 +209,6 @@
   }
 }
 
-.hint-bubble {
-  @apply fixed left-4 top-20 max-w-xs glass-morphism;
-  animation: fadeIn 0.3s ease-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
 /* Card Animations */
 .card-suggestion {
   animation: glow-pulse 1.5s infinite alternate;
@@ -237,12 +216,12 @@
 
 @keyframes glow-pulse {
   from {
-    box-shadow: 0 0 5px rgba(255, 215, 0, 0.5),
-                0 0 10px rgba(255, 215, 0, 0.3);
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.5),
+                0 0 20px rgba(255, 215, 0, 0.3);
   }
   to {
-    box-shadow: 0 0 20px rgba(255, 215, 0, 0.8),
-                0 0 30px rgba(255, 215, 0, 0.5);
+    box-shadow: 0 0 25px rgba(255, 215, 0, 0.8),
+                0 0 35px rgba(255, 215, 0, 0.5);
   }
 }
 
@@ -261,6 +240,20 @@
   }
   100% {
     box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+}
+
+/* Direction change animation */
+.direction-changed {
+  animation: flash-direction 1s ease-out;
+}
+
+@keyframes flash-direction {
+  0%, 100% {
+    background-color: rgba(139, 92, 246, 0.1);
+  }
+  50% {
+    background-color: rgba(139, 92, 246, 0.3);
   }
 }
 

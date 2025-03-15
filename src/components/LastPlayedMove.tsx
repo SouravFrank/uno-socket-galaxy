@@ -1,6 +1,6 @@
 
 import { motion } from "framer-motion";
-import { ArrowLeftRight, HandMetal, RotateCcw } from "lucide-react";
+import { ArrowLeftRight, RotateCcw } from "lucide-react";
 import { UnoCard as UnoCardType } from "@/types/game";
 
 interface MoveHistoryItem {
@@ -77,7 +77,6 @@ const LastPlayedMove = ({ moveHistory, drawCount, direction, directionChanged }:
       {drawCount && drawCount > 0 && (
         <div className="text-xs bg-red-500/20 backdrop-blur-sm rounded-md p-2 border border-red-500/30">
           <div className="flex items-center gap-2">
-            <HandMetal className="w-4 h-4 text-red-400" />
             <span>You need to draw {drawCount} cards</span>
           </div>
         </div>

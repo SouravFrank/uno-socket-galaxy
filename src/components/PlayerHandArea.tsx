@@ -76,18 +76,18 @@ const PlayerHandArea = ({
               "rounded-full h-12 w-12 sm:h-16 sm:w-16 flex items-center justify-center font-bold text-sm sm:text-lg",
               canSayUno 
                 ? "bg-red-600 hover:bg-red-700 shadow-lg border-2 border-white/30 text-white" 
-                : "bg-gray-600/70 cursor-not-allowed dark:bg-gray-700/70 border-white/10 text-white/70"
+                : "bg-gray-600/70 cursor-not-allowed dark:bg-gray-800/90 border-white/10 text-white/70"
             )}
           >
             UNO
           </Button>
         </motion.div>
         
-        {/* Cards container with horizontal scroll if needed */}
+        {/* Cards container with horizontal overflow if needed */}
         <div 
           className={cn(
-            "flex justify-center pb-4 hide-scrollbar",
-            isMobile ? "max-w-full overflow-x-auto" : ""
+            "flex justify-center overflow-x-auto pb-4 hide-scrollbar",
+            isMobile ? "max-w-full" : ""
           )}
         >
           {cards.map((card, index) => {
@@ -102,7 +102,7 @@ const PlayerHandArea = ({
               <div 
                 key={card.id} 
                 className={cn(
-                  "transform transition-all duration-300",
+                  "transform transition-all duration-300 cursor-pointer",
                   isHighlighted ? "hover:z-20 card-suggestion" : "hover:z-10"
                 )}
                 style={{ 
@@ -114,7 +114,7 @@ const PlayerHandArea = ({
                 <UnoCard
                   color={card.color}
                   value={card.value}
-                  isPlayable={isPlayable}
+                  isPlayable={playableCards.some((c) => c.id === card.id) && gameState.currentPlayer === playerId}
                   onClick={() => onPlayCard(card.id)}
                 />
               </div>

@@ -32,15 +32,15 @@ const GameHints = ({ playableCards, isVisible }: GameHintsProps) => {
                 animate={{ 
                   x: 0, 
                   opacity: 1,
-                  boxShadow: ["0px 0px 0px rgba(255, 255, 255, 0)", "0px 0px 12px rgba(255, 255, 255, 0.7)", "0px 0px 0px rgba(255, 255, 255, 0)"],
+                  boxShadow: ["0px 0px 0px rgba(255, 255, 255, 0)", "0px 0px 20px rgba(255, 215, 0, 0.7)", "0px 0px 0px rgba(255, 255, 255, 0)"],
                 }}
                 transition={{
                   boxShadow: {
                     repeat: Infinity,
-                    duration: 1.5,
+                    duration: 2,
                   }
                 }}
-                className="text-sm bg-white/10 backdrop-blur-sm rounded-md p-2 border border-white/20 dark:bg-black/40 dark:border-white/10 neon-border"
+                className="text-sm bg-white/10 backdrop-blur-sm rounded-md p-2 border border-white/20 dark:bg-black/40 dark:border-white/10"
               >
                 <div className="flex items-center gap-2">
                   <div 
