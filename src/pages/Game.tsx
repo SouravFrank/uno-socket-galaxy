@@ -417,6 +417,8 @@ const Game = () => {
           onUnoButtonClick={handleUnoButton}
           canSayUno={canSayUno}
           isLearningMode={isLearningMode}
+          gameState={gameState}
+          playerId={playerId}
         />
       </div>
     </div>

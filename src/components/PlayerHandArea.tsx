@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import UnoCard from "./UnoCard";
-import { UnoCard as UnoCardType } from "@/types/game";
+import { GameState, UnoCard as UnoCardType } from "@/types/game";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { motion } from "framer-motion";
@@ -15,6 +15,8 @@ interface PlayerHandAreaProps {
   onUnoButtonClick: () => void;
   canSayUno: boolean;
   isLearningMode: boolean;
+  gameState: GameState;
+  playerId: string;
 }
 
 const PlayerHandArea = ({
@@ -24,7 +26,9 @@ const PlayerHandArea = ({
   onPlayCard,
   onUnoButtonClick,
   canSayUno,
-  isLearningMode
+  isLearningMode,
+  gameState,
+  playerId,
 }: PlayerHandAreaProps) => {
   const isMobile = useIsMobile();
   const [containerWidth, setContainerWidth] = useState(0);
