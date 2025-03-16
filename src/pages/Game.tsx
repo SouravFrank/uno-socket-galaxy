@@ -13,6 +13,7 @@ import OpponentsList from "@/components/OpponentsList";
 import GameLobby from "@/components/GameLobby";
 import GameOver from "@/components/GameOver";
 import { useGameLogic } from "@/hooks/useGameLogic";
+import { ColorPicker } from "@/components/ColorPicker";
 
 const Game = () => {
   const { gameId } = useParams();
@@ -22,6 +23,10 @@ const Game = () => {
   const [soundEnabled, setSoundEnabled] = useState(true);
 
   const {
+    // Add these two properties
+    showColorPicker,
+    handleColorSelect,
+    // Keep the rest of existing destructured properties
     gameState,
     playerId,
     pendingDrawCount,
@@ -104,6 +109,15 @@ const Game = () => {
   // Render active game
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-green-500/10 via-yellow-500/10 to-green-500/10 dark:from-green-900/20 dark:via-yellow-900/10 dark:to-green-900/20 pb-24 sm:pb-32">
+      {/* Add ColorPicker at the same level as other top-level components */}
+      {showColorPicker && (
+        <ColorPicker
+          open={showColorPicker}
+          onClose={() => setShowColorPicker(false)}
+          onSelect={handleColorSelect}
+        />
+      )}
+
       {/* Theme Toggle */}
       <ThemeToggle />
 
@@ -187,3 +201,5 @@ const Game = () => {
 };
 
 export default Game;
+
+

@@ -158,21 +158,24 @@ export function startDummyGame(gameState: GameState): GameState {
 }
 
 // Check if a card is playable on the current card
-export function isCardPlayable(card: UnoCard, currentCard: UnoCard): boolean {
-  // Wild cards can always be played
-  if (card.color === "black") return true;
-  
-  // Cards with the same color can be played
-  if (card.color === currentCard.color) return true;
-  
-  // Cards with the same value can be played
-  if (card.value === currentCard.value) return true;
-  
-  return false;
+export function isCardPlayable(card: UnoCard, currentCard: UnoCard, playerCards: UnoCard[]): boolean {
+  // Wild cards can be played if player has no other matches (for Wild Draw Four)
+  if (card.value === "+4") {
+    return playerCards.every(c => 
+      c.color !== currentCard.color && 
+      c.value !== currentCard.value &&
+      c.color !== "black"
+    );
+  }
+
+  // Regular validation for other cards
+  return card.color === currentCard.color ||
+         card.value === currentCard.value ||
+         card.color === "black";
 }
 
 // Play a card
-export function playCard(gameState: GameState, playerId: string, cardId: string): GameState {
+export function playCard(gameState: GameState, playerId: string, cardId: string, chosenColor?: string): GameState {
   const playerIndex = gameState.players.findIndex(p => p.id === playerId);
   if (playerIndex === -1 || gameState.currentPlayer !== playerId) {
     return gameState;
@@ -211,50 +214,42 @@ export function playCard(gameState: GameState, playerId: string, cardId: string)
     };
   }
 
-  // Update game state based on the card played
-  let nextPlayerIndex = playerIndex;
-  let newDirection = gameState.direction;
-  let lastAction: "play" | "skip" | "reverse" = "play";
-
-  switch (card.value) {
-    case "skip":
-      lastAction = "skip";
-      // Skip the next player
-      if (gameState.direction === "clockwise") {
-        nextPlayerIndex = (playerIndex + 1) % gameState.players.length;
-      } else {
-        nextPlayerIndex = (playerIndex - 1 + gameState.players.length) % gameState.players.length;
-      }
-      break;
-    case "reverse":
-      lastAction = "reverse";
-      // Reverse the direction
-      newDirection = gameState.direction === "clockwise" ? "counter-clockwise" : "clockwise";
-      break;
-    default:
-      // Move to the next player
-      if (gameState.direction === "clockwise") {
-        nextPlayerIndex = (playerIndex + 1) % gameState.players.length;
-      } else {
-        nextPlayerIndex = (playerIndex - 1 + gameState.players.length) % gameState.players.length;
-      }
+  // Handle Wild card color selection
+  if (card.color === "black" && !chosenColor) {
+    throw new Error("Must choose a color when playing Wild card");
   }
 
-  // Get the next player
-  let nextPlayer = gameState.players[nextPlayerIndex].id;
+  // Update current card color for Wild cards
+  const updatedCard = card.color === "black" ? 
+    { ...card, color: chosenColor! } : 
+    card;
+
+  // Handle Wild Draw Four challenge
+  if (card.value === "+4") {
+    const challenger = gameState.players.find(p => p.id !== playerId);
+    if (challenger && hasMatchingColorCards(gameState.players.find(p => p.id === playerId)!.cards, currentCard)) {
+      // Penalize the player if challenge succeeds
+      return drawCards(gameState, playerId, 4);
+    } else if (challenger) {
+      // Penalize challenger if challenge fails
+      return drawCards(gameState, challenger.id, 6);
+    }
+  }
+
+  // Update game state with modified card
+  // Add this line before the return statement
+  const lastAction: GameState['lastAction'] = "play";
 
   return {
     ...gameState,
-    currentPlayer: nextPlayer,
-    direction: newDirection,
-    currentCard: card,
+    currentCard: updatedCard,
     discardPile: [...gameState.discardPile, card],
     players: [
       ...gameState.players.slice(0, playerIndex),
       updatedPlayer,
       ...gameState.players.slice(playerIndex + 1)
     ],
-    lastAction
+    lastAction // Now properly defined
   };
 }
 

@@ -129,9 +129,26 @@ export const useGameLogic = (gameId: string | undefined, navigate: ReturnType<ty
     setGameState(startDummyGame(gameState));
   };
 
+  // Add new state at the top of the hook
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [selectedCardToPlay, setSelectedCardToPlay] = useState<string | null>(null);
   const handlePlayCard = (cardId: string) => {
     if (!gameState || !playerId) return;
-
+  
+    // Two-player special rules
+    const isTwoPlayer = gameState.players.length === 2;
+    
+    // Handle Reverse as Skip in two-player
+    if (isTwoPlayer && card.value === "reverse") {
+      gameState.direction = "clockwise"; // Reset direction
+      nextPlayerIndex = playerIndex; // Stay on same player
+    }
+  
+    // Handle Draw cards in two-player
+    if (isTwoPlayer && (card.value === "+2" || card.value === "+4")) {
+      nextPlayerIndex = playerIndex; // Current player keeps turn
+    }
+  
     // If there's a pending draw count, player must draw first
     if (pendingDrawCount > 0 && gameState.currentPlayer === playerId) {
       return;
@@ -139,8 +156,15 @@ export const useGameLogic = (gameId: string | undefined, navigate: ReturnType<ty
 
     const player = gameState.players.find(p => p.id === playerId);
     const card = player?.cards.find(c => c.id === cardId);
-
+  
     if (card) {
+      // Handle Wild card color selection
+      if (card.color === "black") {
+        setSelectedCardToPlay(cardId);
+        setShowColorPicker(true);
+        return;
+      }
+
       // Check if player should have pressed UNO button
       const shouldPressUno = player && player.cards.length === 2;
 
@@ -172,6 +196,32 @@ export const useGameLogic = (gameId: string | undefined, navigate: ReturnType<ty
 
       // Let AI players make moves after a delay
       if (updatedState.status === "playing" && updatedState.currentPlayer !== playerId) {
+        setTimeout(simulateAIMove, 1500);
+      }
+    }
+  };
+
+  // Add color selection handler
+  const handleColorSelect = (color: UnoCard['color']) => {
+    if (!selectedCardToPlay || !gameState || !playerId) return;
+  
+    const player = gameState.players.find(p => p.id === playerId);
+    const card = player?.cards.find(c => c.id === selectedCardToPlay);
+  
+    if (card) {
+      const updatedState = playCardAction(gameState, playerId, selectedCardToPlay, color);
+      setGameState(updatedState);
+      
+      // Add to move history
+      const newMove = createMoveHistoryItem(playerId, player.name, card);
+      setMoveHistory(prev => [...prev, newMove]);
+  
+      // Reset color picker state
+      setShowColorPicker(false);
+      setSelectedCardToPlay(null);
+      
+      // Let AI players make moves after a delay
+      if (updatedState.currentPlayer !== playerId) {
         setTimeout(simulateAIMove, 1500);
       }
     }
